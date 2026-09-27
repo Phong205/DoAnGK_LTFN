@@ -2,13 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brick Breaker</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="d-flex align-items-center justify-content-center min-vh-100 p-3">
+<!--Trang chủ-->
+<main class ="home-container d-flex flex-column align-items-center text-center">
+    <!--Tiêu đề-->
+    <header class="mb-3">
+        <h1 class="game-title text-warning fw-bold mb-1">Brick Breaker</h1>
+        <p class="text-secondary small mb-0">Phiên bản cổ điển</p>
+    </header>
+    <!--Màn hình chính-->
+    <section class="game-screen-wrapper mb-4">
+        <canvas id="previewCanvas" width="880" height="440"></canvas>
+        <div class="screen-overplay d-flex flex-column align-items-center justify-content-center">
+            <span class="badge bg-danger mb-2 px-3 py-2 fs-6">Sãn sàng</span>
+            <p class="text-light small mb-0">Nhấn "Chơi mới" để bắt đầu trò chơi</p>
+        </div>
+    </section>
 
+<script src="js/bootstrap.bundle.min.js"></script>
+<script src="js/home.js"></script>
 </body>
-<script src="js/bootstrap.bundle.min.js">
-        src="js/game.js"
-</script>
-
 </html>
