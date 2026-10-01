@@ -6,63 +6,128 @@
     <title>Brick Breaker</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="d-flex align-items-center justify-content-center min-vh-100 p-3">
-<!--Trang chủ-->
-<main class ="home-container d-flex flex-column align-items-center text-center">
-    <!--Tiêu đề-->
-    <header class="mb-3">
-        <h1 class="game-title text-warning fw-bold mb-1">Brick Breaker</h1>
+<body class="d-flex align-items-center justify-content-center min-vh-100 p-2">
+
+<main class="d-flex flex-column align-items-center text-center w-100">
+
+    <header id="mainHeader" class="mb-2">
+        <h1 class="game-title text-warning fw-bold mb-0">Brick Breaker</h1>
         <p class="text-secondary small mb-0">Phiên bản cổ điển</p>
     </header>
-    <!--Màn hình chính-->
-    <section class="game-screen-wrapper mb-4">
-        <canvas id="previewCanvas" width="880" height="440"></canvas>
-        <div class="screen-overplay d-flex flex-column align-items-center justify-content-center">
-            <span class="badge bg-danger mb-2 px-3 py-2 fs-6">Sãn sàng</span>
+
+    <div id="gameHud" class="game-hud d-none justify-content-between align-items-center mb-2">
+        <div>
+            <span class="badge bg-primary px-3 py-2 fs-6 me-2">MÀN 1</span>
+            <span class="badge bg-warning text-dark px-3 py-2 fs-6 me-2">ĐIỂM: <span id="hudScore">0</span></span>
+            <span class="badge bg-danger px-3 py-2 fs-6">MẠNG: <span id="hudLives">3</span> ❤</span>
+        </div>
+        <button id="btnGameMenu" class="btn btn-warning fw-bold px-3">☰ MENU</button>
+    </div>
+
+    <div id="screenWrapper" class="game-screen-wrapper mb-3">
+        <canvas id="gameCanvas" width="600" height="750"></canvas>
+
+        <div id="homeOverlay" class="screen-overlay d-flex flex-column align-items-center justify-content-center">
+            <span class="badge bg-danger mb-2 px-3 py-2 fs-6">Sẵn sàng</span>
             <p class="text-light small mb-0">Nhấn "Chơi mới" để bắt đầu trò chơi</p>
         </div>
-    </section>
 
-    <!--Dàn nút-->
-    <section class="menu-actions d-flex flex-column gap-2">
+        <div id="launchHintOverlay" class="screen-overlay d-none flex-column align-items-center justify-content-end pb-5">
+            <div class="badge bg-dark bg-opacity-75 border border-warning text-warning fs-6 px-3 py-2">
+                🖱️ Nhấn chuột để phóng bóng
+            </div>
+        </div>
+
+        <div id="tutorialOverlay" class="game-overlay d-none flex-column align-items-center justify-content-center p-3">
+            <div class="tutorial-card bg-dark border border-warning rounded p-4 text-center shadow-lg">
+                <h3 class="text-warning fw-bold mb-3">MÀN 1: CƠ BẢN</h3>
+                <div class="text-start text-light mb-4">
+                    <p class="mb-2">👉 <strong>Cơ chế:</strong> Toàn bộ các khối gạch vỡ sau 1 chạm.</p>
+                    <p class="mb-2">🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc dùng phím mũi tên <strong>Trái / Phải</strong> (hoặc <strong>A / D</strong>).</p>
+                    <p class="mb-0">🖱️ <strong>Khởi động:</strong> Nhấn chuột trái để phóng bóng bắt đầu chơi.</p>
+                </div>
+                <button id="btnStartGameplay" class="btn btn-warning btn-lg fw-bold px-5">Tiếp tục ➔</button>
+            </div>
+        </div>
+
+        <div id="pauseOverlay" class="game-overlay d-none flex-column align-items-center justify-content-center">
+            <h2 class="text-warning fw-bold display-6 mb-4">DỪNG LẠI</h2>
+            <div class="d-flex flex-column gap-2 col-8 col-sm-6">
+                <button id="btnResumeGame" class="btn btn-success fw-bold">Tiếp tục</button>
+                <button id="btnSelectLevelFromPause" class="btn btn-outline-light">Chọn màn</button>
+                <button id="btnHomeFromPause" class="btn btn-outline-light">Trở về màn hình chính</button>
+                <button id="btnExitFromPause" class="btn btn-outline-danger">Thoát game</button>
+            </div>
+        </div>
+
+        <div id="victoryOverlay" class="game-overlay d-none flex-column align-items-center justify-content-center p-3">
+            <div class="tutorial-card bg-dark border border-success rounded p-4 text-center shadow-lg">
+                <h2 class="text-success fw-bold display-6 mb-2">🎉 BẠN THẮNG! 🎉</h2>
+                <p class="text-light mb-4">Chúc mừng bạn đã dọn sạch toàn bộ các khối gạch Màn 1.</p>
+                <div class="d-flex flex-column gap-2">
+                    <button id="btnVictoryContinue" class="btn btn-success btn-lg fw-bold">Tiếp tục</button>
+                    <button id="btnVictorySelectLevel" class="btn btn-outline-light">Chọn màn</button>
+                    <button id="btnVictoryHome" class="btn btn-outline-secondary">Trở về màn hình chính</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section id="homeActions" class="menu-actions d-flex flex-column gap-2">
         <button id="btnNewGame" type="button" class="btn btn-primary btn-lg fw-bold shadow-sm">
             🎮 Chơi Mới
         </button>
         <button id="btnContinue" type="button" class="btn btn-success btn-lg fw-bold shadow-sm" disabled>
             ▶ Tiếp Tục
         </button>
-
         <div class="d-flex gap-2">
-            <button id="btnSettings" type="button" class="btn btn-outline-info flex-fill fw-semibold" data-bs-toggle="modal" data-bs-target="#settingsModal">
-            ⚙️ Cài Đặt
+            <button class="btn btn-outline-info flex-fill fw-semibold" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                ⚙️ Cài Đặt
             </button>
-            <button id="btnGuide" type="button" class="btn btn-outline-light flex-fill fw-semibold" data-bs-toggle="modal" data-bs-target="#guideModal">
-            📖 Hướng Dẫn
+            <button class="btn btn-outline-light flex-fill fw-semibold" data-bs-toggle="modal" data-bs-target="#guideModal">
+                📖 Hướng Dẫn
             </button>
-            <button id="btnExit" type="button" class="btn btn-outline-danger flex-fill fw-semibold" data-bs-toggle="modal" data-bs-target="#exitModal">
-            🚪 Thoát
+            <button class="btn btn-outline-danger flex-fill fw-semibold" data-bs-toggle="modal" data-bs-target="#exitModal">
+                🚪 Thoát
             </button>
         </div>
     </section>
+
+    <section id="levelSelectArea" class="d-none flex-column align-items-center w-100">
+        <h2 class="text-warning fw-bold mb-3">CHỌN MÀN CHƠI</h2>
+        <div class="row g-3 justify-content-center level-grid mb-3">
+            <div class="col-12 col-sm-6">
+                <button class="btn btn-outline-warning w-100 p-3 btn-level" data-level="1">
+                    <h5 class="fw-bold mb-1">MÀN 1</h5>
+                    <span class="badge bg-warning text-dark">Cơ bản</span>
+                </button>
+            </div>
+            <div class="col-12 col-sm-6">
+                <button class="btn btn-outline-secondary w-100 p-3 btn-level" disabled>
+                    <h5 class="fw-bold mb-1">MÀN 2</h5>
+                    <span class="small text-muted">Khóa</span>
+                </button>
+            </div>
+        </div>
+        <button id="btnBackToHome" class="btn btn-outline-secondary px-4">Quay về Trang Chủ</button>
+    </section>
+
 </main>
 
-<!--Cài Đặt-->
-<div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+<div class="modal fade" id="settingsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-dark text-white border border-info shadow-lg">
             <div class="modal-header border-secondary">
-                <h5 class="modal-title text-info fw-bold" id="settingsModalLabel">⚙️ Cài Đặt Âm Thanh</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title text-info fw-bold">⚙️ Cài Đặt Âm Thanh</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body py-3">
-                <!--Âm lượng nhạc nền-->
                 <div class="mb-4 text-start">
                     <label for="bgmSlider" class="form-label d-flex justify-content-between align-items-center">
                         <span class="fw-semibold">🎵 Nhạc nền (BGM):</span>
                     </label>
                     <input type="range" class="form-range" id="bgmSlider" min="0" max="100" value="50">
                 </div>
-                <!--Âm lương bi va chạm-->
                 <div class="mb-2 text-start">
                     <label for="sfxSlider" class="form-label d-flex justify-content-between align-items-center">
                         <span class="fw-semibold">💥 Tiếng bi va chạm (SFX):</span>
@@ -77,28 +142,18 @@
     </div>
 </div>
 
-<!--Hướng dẫn chơi-->
-<div class="modal fade" id="guideModal" tabindex="-1" aria-labelledby="guideModalLabel" aria-hidden="true">
+<div class="modal fade" id="guideModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-dark text-white border border-light shadow-lg">
             <div class="modal-header border-secondary">
-                <h5 class="modal-title text-warning fw-bold" id="guideModalLabel">📖 Hướng Dẫn Cách Chơi</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title text-warning fw-bold">📖 Hướng Dẫn Cách Chơi</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-start">
                 <ul class="list-unstyled d-flex flex-column gap-3 mb-0">
-                    <li class="d-flex align-items-start gap-2">
-                        <span class="fs-5">🕹️</span>
-                        <span><strong>Điều khiển:</strong> Dùng chuột hoặc 2 phím mũi tên <strong>Trái / Phải</strong> (hoặc <strong>A / D</strong>) để di chuyển thanh đỡ.</span>
-                    </li>
-                    <li class="d-flex align-items-start gap-2">
-                        <span class="fs-5">⚽</span>
-                        <span><strong>Bóng nảy:</strong> Đỡ bóng chạm góc vợt để đổi hướng bóng hiểm hơn, không được để bóng rơi xuống đáy màn hình.</span>
-                    </li>
-                    <li class="d-flex align-items-start gap-2">
-                        <span class="fs-5">🧱</span>
-                        <span><strong>Phá vỡ:</strong> Phá hủy toàn bộ các viên gạch trên màn hình để vượt qua màn chơi.</span>
-                    </li>
+                    <li>🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc phím mũi tên <strong>Trái / Phải</strong>.</li>
+                    <li>🖱️ <strong>Bắn bóng:</strong> Nhấp chuột trái để đẩy bóng bay đi.</li>
+                    <li>🧱 <strong>Phá vỡ:</strong> Dọn sạch các khối gạch để chiến thắng.</li>
                 </ul>
             </div>
             <div class="modal-footer border-secondary justify-content-center">
@@ -108,13 +163,12 @@
     </div>
 </div>
 
-<!--Thoát game-->
-<div class="modal fade" id="exitModal" tabindex="-1" aria-labelledby="exitModalLabel" aria-hidden="true">
+<div class="modal fade" id="exitModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-dark text-white border border-danger shadow-lg">
             <div class="modal-header border-danger">
-                <h5 class="modal-title text-danger fw-bold" id="exitModalLabel">🚪 Xác Nhận Thoát</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title text-danger fw-bold">🚪 Xác Nhận Thoát</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center py-4">
                 <p class="fs-5 mb-1">Bạn có chắc chắn muốn thoát game?</p>
@@ -128,8 +182,25 @@
     </div>
 </div>
 
+<div class="modal fade" id="confirmResetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border border-danger shadow-lg">
+            <div class="modal-header border-danger">
+                <h5 class="modal-title text-danger fw-bold">⚠️ Thông Báo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <p class="fs-5 mb-0">Mọi tiến trình của bạn sẽ bị xóa</p>
+            </div>
+            <div class="modal-footer border-danger justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button id="btnConfirmReset" type="button" class="btn btn-danger px-4">Tiếp tục</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="js/bootstrap.bundle.min.js"></script>
-<script src="js/home.js"></script>
+<script src="js/game.js"></script>
 </body>
 </html>
