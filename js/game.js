@@ -29,6 +29,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const hudScore = document.getElementById("hudScore");
     const hudLives = document.getElementById("hudLives");
+    const hudLevel = document.getElementById("hudLevel");
+
+    const tutorialTitle = document.getElementById("tutorialTitle");
+    const tutorialDesc = document.getElementById("tutorialDesc");
 
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
@@ -66,11 +70,13 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (e) {}
     }
 
+    let currentLevel = 1;
     let isPlaying = false;
     let isBallLaunched = false;
     let animationId = null;
     let score = 0;
     let lives = 3;
+    let bricksToBreak = 0;
 
     const paddle = {
         width: 120,
@@ -99,9 +105,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const brickOffsetLeft = (600 - (brickColumnCount * (brickWidth + brickPadding) - brickPadding)) / 2;
 
     let bricks = [];
-    function initBricks() {
+
+    function initBricks(level) {
         bricks = [];
+        bricksToBreak = 0;
         const colors = ["#ff4757", "#ff6b81", "#ffa502", "#eccc68", "#2ed573", "#1e90ff"];
+
         for (let c = 0; c < brickColumnCount; c++) {
             bricks[c] = [];
             for (let r = 0; r < brickRowCount; r++) {
@@ -111,6 +120,38 @@ document.addEventListener("DOMContentLoaded", () => {
                     status: 1,
                     color: colors[r]
                 };
+                bricksToBreak++;
+            }
+        }
+
+        if (level === 2) {
+            let barrierCount = 0;
+            let attempts = 0;
+
+            while (barrierCount < 2 && attempts < 50) {
+                attempts++;
+                let r = Math.floor(Math.random() * (brickRowCount - 2)) + 1;
+                let c = Math.floor(Math.random() * (brickColumnCount - 2));
+
+                let canPlace = true;
+                for (let i = -1; i <= 3; i++) {
+                    let checkCol = c + i;
+                    if (checkCol >= 0 && checkCol < brickColumnCount) {
+                        if (bricks[checkCol][r].status === 2) {
+                            canPlace = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (canPlace) {
+                    for (let i = 0; i < 3; i++) {
+                        bricks[c + i][r].status = 2;
+                        bricks[c + i][r].color = "#95a5a6";
+                        bricksToBreak--;
+                    }
+                    barrierCount++;
+                }
             }
         }
     }
@@ -161,7 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
         for (let c = 0; c < brickColumnCount; c++) {
             for (let r = 0; r < brickRowCount; r++) {
                 const b = bricks[c][r];
-                if (b && b.status === 1) {
+                if (b && (b.status === 1 || b.status === 2)) {
                     ctx.beginPath();
                     if (ctx.roundRect) {
                         ctx.roundRect(b.x, b.y, brickWidth, brickHeight, 4);
@@ -170,6 +211,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                     ctx.fillStyle = b.color;
                     ctx.fill();
+
+                    if (b.status === 2) {
+                        ctx.strokeStyle = "#ecf0f1";
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    }
                     ctx.closePath();
                 }
             }
@@ -183,7 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
         drawBall();
     }
 
-    initBricks();
+    initBricks(currentLevel);
     resetBallOnPaddle();
     renderScene();
 
@@ -217,12 +264,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function collisionDetection() {
-        let remainingBricks = 0;
         for (let c = 0; c < brickColumnCount; c++) {
             for (let r = 0; r < brickRowCount; r++) {
                 const b = bricks[c][r];
-                if (b && b.status === 1) {
-                    remainingBricks++;
+                if (b && (b.status === 1 || b.status === 2)) {
                     if (
                         ball.x > b.x &&
                         ball.x < b.x + brickWidth &&
@@ -230,25 +275,29 @@ document.addEventListener("DOMContentLoaded", () => {
                         ball.y < b.y + brickHeight
                     ) {
                         ball.dy = -ball.dy;
-                        b.status = 0;
-                        score += 10;
-                        hudScore.textContent = score;
                         playHitSound();
-                        remainingBricks--;
+
+                        if (b.status === 1) {
+                            b.status = 0;
+                            score += 10;
+                            hudScore.textContent = score;
+                            bricksToBreak--;
+                        }
+
+                        if (bricksToBreak === 0) {
+                            isPlaying = false;
+                            cancelAnimationFrame(animationId);
+                            localStorage.removeItem("BRICK_BREAKER_SAVE");
+                            checkSavedGame();
+                            launchHintOverlay.classList.add("d-none");
+                            launchHintOverlay.classList.remove("d-flex");
+                            victoryOverlay.classList.remove("d-none");
+                            victoryOverlay.classList.add("d-flex");
+                            return;
+                        }
                     }
                 }
             }
-        }
-
-        if (remainingBricks === 0) {
-            isPlaying = false;
-            cancelAnimationFrame(animationId);
-            localStorage.removeItem("BRICK_BREAKER_SAVE");
-            checkSavedGame();
-            launchHintOverlay.classList.add("d-none");
-            launchHintOverlay.classList.remove("d-flex");
-            victoryOverlay.classList.remove("d-none");
-            victoryOverlay.classList.add("d-flex");
         }
     }
 
@@ -304,7 +353,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         renderScene();
-        animationId = requestAnimationFrame(gameLoop);
+        if (isPlaying) {
+            animationId = requestAnimationFrame(gameLoop);
+        }
     }
 
     function expandGameScreen() {
@@ -345,14 +396,43 @@ document.addEventListener("DOMContentLoaded", () => {
         homeOverlay.classList.remove("d-none");
         homeOverlay.classList.add("d-flex");
 
-        initBricks();
+        initBricks(currentLevel);
         resetBallOnPaddle();
         renderScene();
         checkSavedGame();
     }
 
+    function loadLevelFromMenu(level) {
+        currentLevel = level;
+        score = 0;
+        lives = 3;
+        hudScore.textContent = score;
+        hudLives.textContent = lives;
+        if (hudLevel) hudLevel.textContent = currentLevel;
+
+        if (level === 1) {
+            if (tutorialTitle) tutorialTitle.textContent = "MÀN 1: CƠ BẢN";
+            if (tutorialDesc) tutorialDesc.innerHTML = "👉 <strong>Cơ chế:</strong> Toàn bộ khối gạch vỡ sau 1 chạm.<br>🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc phím mũi tên.<br>🖱️ <strong>Khởi động:</strong> Nhấn chuột trái để phóng bóng.";
+        } else if (level === 2) {
+            if (tutorialTitle) tutorialTitle.textContent = "MÀN 2: THANH CHẮN";
+            if (tutorialDesc) tutorialDesc.innerHTML = "👉 <strong>Cơ chế:</strong> Xuất hiện các <strong>thanh chắn kim loại</strong> không thể bị phá vỡ. Bóng sẽ nảy ra khi chạm vào.<br>⚠️ <strong>Mục tiêu:</strong> Lách bóng qua thanh chắn để phá gạch.";
+        }
+
+        paddle.x = 600 / 2 - paddle.width / 2;
+        initBricks(currentLevel);
+        resetBallOnPaddle();
+        renderScene();
+        expandGameScreen();
+
+        victoryOverlay.classList.add("d-none");
+        victoryOverlay.classList.remove("d-flex");
+        tutorialOverlay.classList.remove("d-none");
+        tutorialOverlay.classList.add("d-flex");
+    }
+
     function saveGameProgress() {
         const data = {
+            level: currentLevel,
             score: score,
             lives: lives,
             paddle: { x: paddle.x, y: paddle.y },
@@ -406,21 +486,11 @@ document.addEventListener("DOMContentLoaded", () => {
         homeActions.classList.add("d-flex");
     });
 
-    document.querySelector('.btn-level[data-level="1"]').addEventListener("click", () => {
-        expandGameScreen();
-        score = 0;
-        lives = 3;
-        hudScore.textContent = score;
-        hudLives.textContent = lives;
-        paddle.x = 600 / 2 - paddle.width / 2;
-        initBricks();
-        resetBallOnPaddle();
-        renderScene();
-
-        victoryOverlay.classList.add("d-none");
-        victoryOverlay.classList.remove("d-flex");
-        tutorialOverlay.classList.remove("d-none");
-        tutorialOverlay.classList.add("d-flex");
+    document.querySelectorAll('.btn-level').forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const level = parseInt(e.currentTarget.getAttribute("data-level"));
+            loadLevelFromMenu(level);
+        });
     });
 
     btnStartGameplay.addEventListener("click", () => {
@@ -437,6 +507,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!raw) return;
         const data = JSON.parse(raw);
 
+        currentLevel = data.level || 1;
+        if (hudLevel) hudLevel.textContent = currentLevel;
+
         expandGameScreen();
         score = data.score;
         lives = data.lives;
@@ -448,6 +521,14 @@ document.addEventListener("DOMContentLoaded", () => {
         ball.dy = data.ball.dy;
         isBallLaunched = data.ball.isBallLaunched;
         bricks = data.bricks;
+
+        bricksToBreak = 0;
+        for (let c = 0; c < brickColumnCount; c++) {
+            for (let r = 0; r < brickRowCount; r++) {
+                if(bricks[c][r].status === 1) bricksToBreak++;
+            }
+        }
+
         hudScore.textContent = score;
         hudLives.textContent = lives;
 
@@ -510,12 +591,14 @@ document.addEventListener("DOMContentLoaded", () => {
     btnVictoryContinue.addEventListener("click", () => {
         victoryOverlay.classList.add("d-none");
         victoryOverlay.classList.remove("d-flex");
-        paddle.x = 600 / 2 - paddle.width / 2;
-        initBricks();
-        resetBallOnPaddle();
-        renderScene();
-        isPlaying = true;
-        gameLoop();
+
+        if (currentLevel < 2) {
+            currentLevel++;
+            loadLevelFromMenu(currentLevel);
+        } else {
+            alert("Chúc mừng bạn đã hoàn thành tất cả các màn!");
+            switchToHomeScreen();
+        }
     });
 
     btnVictorySelectLevel.addEventListener("click", () => {
