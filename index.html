@@ -15,13 +15,14 @@
         <p class="text-secondary small mb-0">Phiên bản cổ điển</p>
     </header>
 
-    <div id="gameHud" class="game-hud d-none justify-content-between align-items-center mb-2">
-        <div>
-            <span class="badge bg-primary px-3 py-2 fs-6 me-2">MÀN 1</span>
-            <span class="badge bg-warning text-dark px-3 py-2 fs-6 me-2">ĐIỂM: <span id="hudScore">0</span></span>
-            <span class="badge bg-danger px-3 py-2 fs-6">MẠNG: <span id="hudLives">3</span> ❤</span>
-        </div>
-        <button id="btnGameMenu" class="btn btn-warning fw-bold px-3">☰ MENU</button>
+    <div id="gameHud" class="game-hud d-none justify-content-center align-items-center gap-2 mb-2">
+        <span class="badge bg-primary px-3 py-2 fs-6">MÀN 1</span>
+        <span class="badge bg-warning text-dark px-3 py-2 fs-6">ĐIỂM: <span id="hudScore">0</span></span>
+        <span class="badge bg-danger px-3 py-2 fs-6">MẠNG: <span id="hudLives">3</span> ❤</span>
+
+        <button id="btnGameMenu" class="badge bg-warning text-dark fw-bold px-3 py-2 fs-6 border-0 shadow-sm" style="cursor: pointer; transition: 0.2s;">
+            ☰ MENU
+        </button>
     </div>
 
     <div id="screenWrapper" class="game-screen-wrapper mb-3">
@@ -32,7 +33,8 @@
             <p class="text-light small mb-0">Nhấn "Chơi mới" để bắt đầu trò chơi</p>
         </div>
 
-        <div id="launchHintOverlay" class="screen-overlay d-none flex-column align-items-center justify-content-end pb-5">
+        <div id="launchHintOverlay"
+             class="screen-overlay d-none flex-column align-items-center justify-content-end pb-5">
             <div class="badge bg-dark bg-opacity-75 border border-warning text-warning fs-6 px-3 py-2">
                 🖱️ Nhấn chuột để phóng bóng
             </div>
@@ -40,10 +42,11 @@
 
         <div id="tutorialOverlay" class="game-overlay d-none flex-column align-items-center justify-content-center p-3">
             <div class="tutorial-card bg-dark border border-warning rounded p-4 text-center shadow-lg">
-                <h3 class="text-warning fw-bold mb-3">MÀN 1: CƠ BẢN</h3>
+                <h3 class="text-warning fw-bold mb-3">MÀN 1: GẠCH CƠ BẢN</h3>
                 <div class="text-start text-light mb-4">
                     <p class="mb-2">👉 <strong>Cơ chế:</strong> Toàn bộ các khối gạch vỡ sau 1 chạm.</p>
-                    <p class="mb-2">🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc dùng phím mũi tên <strong>Trái / Phải</strong> (hoặc <strong>A / D</strong>).</p>
+                    <p class="mb-2">🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc dùng phím mũi tên <strong>Trái
+                        / Phải</strong> (hoặc <strong>A / D</strong>).</p>
                     <p class="mb-0">🖱️ <strong>Khởi động:</strong> Nhấn chuột trái để phóng bóng bắt đầu chơi.</p>
                 </div>
                 <button id="btnStartGameplay" class="btn btn-warning btn-lg fw-bold px-5">Tiếp tục ➔</button>
@@ -81,13 +84,16 @@
             ▶ Tiếp Tục
         </button>
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-info flex-fill fw-semibold" data-bs-toggle="modal" data-bs-target="#settingsModal">
+            <button class="btn btn-outline-info flex-fill fw-semibold" data-bs-toggle="modal"
+                    data-bs-target="#settingsModal">
                 ⚙️ Cài Đặt
             </button>
-            <button class="btn btn-outline-light flex-fill fw-semibold" data-bs-toggle="modal" data-bs-target="#guideModal">
+            <button class="btn btn-outline-light flex-fill fw-semibold" data-bs-toggle="modal"
+                    data-bs-target="#guideModal">
                 📖 Hướng Dẫn
             </button>
-            <button class="btn btn-outline-danger flex-fill fw-semibold" data-bs-toggle="modal" data-bs-target="#exitModal">
+            <button class="btn btn-outline-danger flex-fill fw-semibold" data-bs-toggle="modal"
+                    data-bs-target="#exitModal">
                 🚪 Thoát
             </button>
         </div>
@@ -99,19 +105,30 @@
             <div class="col-12 col-sm-6">
                 <button class="btn btn-outline-warning w-100 p-3 btn-level" data-level="1">
                     <h5 class="fw-bold mb-1">MÀN 1</h5>
-                    <span class="badge bg-warning text-dark">Cơ bản</span>
+                    <span class="badge bg-warning text-dark">Gạch cơ bản</span>
                 </button>
             </div>
             <div class="col-12 col-sm-6">
                 <button class="btn btn-outline-secondary w-100 p-3 btn-level" disabled>
                     <h5 class="fw-bold mb-1">MÀN 2</h5>
-                    <span class="small text-muted">Thanh chắn</span>
+                    <span class="small text-muted">Khóa</span>
+                </button>
+            </div>
+            <div class="col-12 col-sm-6">
+                <button class="btn btn-outline-secondary w-100 p-3 btn-level" disabled>
+                    <h5 class="fw-bold mb-1">MÀN 3</h5>
+                    <span class="small text-muted">Khóa</span>
+                </button>
+            </div>
+            <div class="col-12 col-sm-6">
+                <button class="btn btn-outline-secondary w-100 p-3 btn-level" disabled>
+                    <h5 class="fw-bold mb-1">MÀN 4</h5>
+                    <span class="small text-muted">Khóa</span>
                 </button>
             </div>
         </div>
         <button id="btnBackToHome" class="btn btn-outline-secondary px-4">Quay về Trang Chủ</button>
     </section>
-
 </main>
 
 <div class="modal fade" id="settingsModal" tabindex="-1" aria-hidden="true">
@@ -151,7 +168,8 @@
             </div>
             <div class="modal-body text-start">
                 <ul class="list-unstyled d-flex flex-column gap-3 mb-0">
-                    <li>🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc phím mũi tên <strong>Trái / Phải</strong>.</li>
+                    <li>🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc phím mũi tên <strong>Trái / Phải</strong>.
+                    </li>
                     <li>🖱️ <strong>Bắn bóng:</strong> Nhấp chuột trái để đẩy bóng bay đi.</li>
                     <li>🧱 <strong>Phá vỡ:</strong> Dọn sạch các khối gạch để chiến thắng.</li>
                 </ul>
