@@ -53,23 +53,23 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    function playHitSound() {
-        if (!audioCtx || sfxVolume <= 0) return;
-        try {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = "sine";
-            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.05);
-            gain.gain.setValueAtTime(sfxVolume, audioCtx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.05);
-        } catch (e) {
-        }
-    }
+    // function playHitSound() {
+    //     if (!audioCtx || sfxVolume <= 0) return;
+    //     try {
+    //         const osc = audioCtx.createOscillator();
+    //         const gain = audioCtx.createGain();
+    //         osc.type = "sine";
+    //         osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+    //         osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.05);
+    //         gain.gain.setValueAtTime(sfxVolume, audioCtx.currentTime);
+    //         gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+    //         osc.connect(gain);
+    //         gain.connect(audioCtx.destination);
+    //         osc.start();
+    //         osc.stop(audioCtx.currentTime + 0.05);
+    //     } catch (e) {
+    //     }
+    // }
 
     let currentLevel = 1;
     let isPlaying = false;
@@ -304,7 +304,7 @@ document.addEventListener("DOMContentLoaded", () => {
         b.status = 0;
         score += 10;
         hudScore.textContent = score;
-        playHitSound();
+        // playHitSound();
         bricksToBreak--;
 
         if (Math.random() < 0.25) {
@@ -423,7 +423,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     shield.timer = 600;
                 }
 
-                playHitSound();
+                // playHitSound();
                 items.splice(i, 1);
                 i--;
             } else if (item.y - item.height / 2 > canvas.height) {
@@ -511,12 +511,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
                     ball.dx = -ball.dx;
-                    playHitSound();
+                    // playHitSound();
                 }
 
                 if (ball.y + ball.dy < ball.radius) {
                     ball.dy = -ball.dy;
-                    playHitSound();
+                    // playHitSound();
                     removeFireball();
                 }
 
@@ -534,13 +534,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
                         ball.dx = ball.speed * Math.sin(bounceAngle);
                         ball.dy = -ball.speed * Math.cos(bounceAngle);
-                        playHitSound();
+                        // playHitSound();
                     } else if (ball.y + ball.dy > canvas.height - ball.radius) {
                         if (shield.active) {
                             ball.dy = -ball.dy;
                             ball.y = canvas.height - ball.radius - 15;
                             shield.active = false;
-                            playHitSound();
+                            // playHitSound();
                         } else {
                             balls.splice(i, 1);
                         }
