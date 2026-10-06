@@ -1,480 +1,422 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const mainHeader = document.getElementById("mainHeader");
-    const homeActions = document.getElementById("homeActions");
-    const levelSelectArea = document.getElementById("levelSelectArea");
-    const gameHud = document.getElementById("gameHud");
-    const screenWrapper = document.getElementById("screenWrapper");
-
-    const homeOverlay = document.getElementById("homeOverlay");
-    const launchHintOverlay = document.getElementById("launchHintOverlay");
-    const tutorialOverlay = document.getElementById("tutorialOverlay");
-    const pauseOverlay = document.getElementById("pauseOverlay");
-    const victoryOverlay = document.getElementById("victoryOverlay");
-
-    const btnNewGame = document.getElementById("btnNewGame");
-    const btnContinue = document.getElementById("btnContinue");
-    const btnBackToHome = document.getElementById("btnBackToHome");
-    const btnStartGameplay = document.getElementById("btnStartGameplay");
-    const btnGameMenu = document.getElementById("btnGameMenu");
-    const btnResumeGame = document.getElementById("btnResumeGame");
-    const btnSelectLevelFromPause = document.getElementById("btnSelectLevelFromPause");
-    const btnHomeFromPause = document.getElementById("btnHomeFromPause");
-    const btnExitFromPause = document.getElementById("btnExitFromPause");
-    const btnConfirmExit = document.getElementById("btnConfirmExit");
-    const btnConfirmReset = document.getElementById("btnConfirmReset");
-
-    const btnVictoryContinue = document.getElementById("btnVictoryContinue");
-    const btnVictorySelectLevel = document.getElementById("btnVictorySelectLevel");
-    const btnVictoryHome = document.getElementById("btnVictoryHome");
-
-    const hudScore = document.getElementById("hudScore");
-    const hudLives = document.getElementById("hudLives");
-    const hudLevel = document.getElementById("hudLevel");
-
-    const tutorialTitle = document.getElementById("tutorialTitle");
-    const tutorialDesc = document.getElementById("tutorialDesc");
-
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-
-    let confirmResetModalInstance = null;
-    const confirmModalEl = document.getElementById("confirmResetModal");
-    if (confirmModalEl && typeof bootstrap !== "undefined") {
-        confirmResetModalInstance = new bootstrap.Modal(confirmModalEl);
-    }
-
-    let audioCtx = null;
-    let sfxVolume = 0.7;
-
-    function initAudio() {
-        if (!audioCtx) {
-            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-            if (AudioContextClass) audioCtx = new AudioContextClass();
-        }
-    }
-
-    // function playHitSound() {
-    //     if (!audioCtx || sfxVolume <= 0) return;
-    //     try {
-    //         const osc = audioCtx.createOscillator();
-    //         const gain = audioCtx.createGain();
-    //         osc.type = "sine";
-    //         osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-    //         osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.05);
-    //         gain.gain.setValueAtTime(sfxVolume, audioCtx.currentTime);
-    //         gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
-    //         osc.connect(gain);
-    //         gain.connect(audioCtx.destination);
-    //         osc.start();
-    //         osc.stop(audioCtx.currentTime + 0.05);
-    //     } catch (e) {
-    //     }
-    // }
-
-    let currentLevel = 1;
-    let isPlaying = false;
-    let isBallLaunched = false;
-    let animationId = null;
-    let score = 0;
-    let lives = 3;
-    let bricksToBreak = 0;
-
-    const BALL_SPEED = 4.2;
-
-    const paddle = {
-        width: 120,
-        height: 16,
-        x: 600 / 2 - 60,
-        y: 750 - 45,
-        speed: 7.5
+    const InterfaceElements = {
+        mainHeader: document.getElementById("mainHeader"),
+        homeActions: document.getElementById("homeActions"),
+        levelSelectArea: document.getElementById("levelSelectArea"),
+        gameHud: document.getElementById("gameHud"),
+        screenWrapper: document.getElementById("screenWrapper"),
+        homeOverlay: document.getElementById("homeOverlay"),
+        launchHintOverlay: document.getElementById("launchHintOverlay"),
+        tutorialOverlay: document.getElementById("tutorialOverlay"),
+        pauseOverlay: document.getElementById("pauseOverlay"),
+        victoryOverlay: document.getElementById("victoryOverlay"),
+        scoreDisplay: document.getElementById("hudScore"),
+        livesDisplay: document.getElementById("hudLives"),
+        levelDisplay: document.getElementById("hudLevel"),
+        playArea: document.getElementById("playArea")
     };
 
-    let balls = [];
-    let items = [];
-    let bullets = [];
-    let shield = {active: false, timer: 0};
-    let paddleFireballBuff = false;
+    const boardObserver = new ResizeObserver(() => {
+        const currentWidth = InterfaceElements.screenWrapper.clientWidth;
+        const scaleRatio = currentWidth / 600;
+        InterfaceElements.playArea.style.transform = `scale(${scaleRatio})`;
+    });
+    boardObserver.observe(InterfaceElements.screenWrapper);
 
-    const brickRowCount = 12;
-    const brickColumnCount = 15;
-    const brickWidth = 30;
-    const brickHeight = 10;
-    const brickPadding = 5;
-    const brickOffsetTop = 70;
-    const brickOffsetLeft = (600 - (brickColumnCount * (brickWidth + brickPadding) - brickPadding)) / 2;
+    const Buttons = {
+        newGame: document.getElementById("btnNewGame"),
+        continueGame: document.getElementById("btnContinue"),
+        backToHome: document.getElementById("btnBackToHome"),
+        startGameplay: document.getElementById("btnStartGameplay"),
+        gameMenu: document.getElementById("btnGameMenu"),
+        resumeGame: document.getElementById("btnResumeGame"),
+        selectLevelFromPause: document.getElementById("btnSelectLevelFromPause"),
+        homeFromPause: document.getElementById("btnHomeFromPause"),
+        exitFromPause: document.getElementById("btnExitFromPause"),
+        confirmExit: document.getElementById("btnConfirmExit"),
+        confirmReset: document.getElementById("btnConfirmReset"),
+        victoryContinue: document.getElementById("btnVictoryContinue"),
+        victorySelectLevel: document.getElementById("btnVictorySelectLevel"),
+        victoryHome: document.getElementById("btnVictoryHome")
+    };
 
-    let bricks = [];
+    const GameState = {
+        isGameRunning: false,
+        isBallLaunched: false,
+        animationFrameId: null,
+        currentScore: 0,
+        currentLives: 3,
+        currentLevel: 1,
+        totalBricksToBreak: 0,
+        baseBallSpeed: 4.2,
+        activeBalls: [],
+        fallingItems: [],
+        activeBricks: [],
+        paddle: {
+            element: null,
+            width: 120,
+            height: 16,
+            positionX: 240,
+            positionY: 705,
+            moveSpeed: 7.5,
+            hasFireballBuff: false
+        },
+        shield: {
+            element: null,
+            isActive: false,
+            remainingTime: 0
+        },
+        controls: {
+            moveLeft: false,
+            moveRight: false
+        },
+        audioContext: null,
+        soundVolume: 0.7
+    };
 
-    function initBricks(level) {
-        bricks = [];
-        items = [];
-        bullets = [];
-        paddle.width = 120;
-        shield.active = false;
-        paddleFireballBuff = false;
-        bricksToBreak = 0;
+    const LevelConfig = {
+        rowCount: 12,
+        columnCount: 15,
+        brickWidth: 30,
+        brickHeight: 10,
+        brickPadding: 5,
+        offsetTop: 70,
+        colors: ["#00a8ff", "#1e90ff", "#00f2fe", "#48dbfb", "#0abde3", "#70a1ff"]
+    };
+    LevelConfig.offsetLeft = (600 - (LevelConfig.columnCount * (LevelConfig.brickWidth + LevelConfig.brickPadding) - LevelConfig.brickPadding)) / 2;
 
-        const colors = ["#00a8ff", "#1e90ff", "#00f2fe", "#48dbfb", "#0abde3", "#70a1ff"];
-
-        for (let c = 0; c < brickColumnCount; c++) {
-            bricks[c] = [];
-            for (let r = 0; r < brickRowCount; r++) {
-                bricks[c][r] = {
-                    x: c * (brickWidth + brickPadding) + brickOffsetLeft,
-                    y: r * (brickHeight + brickPadding) + brickOffsetTop,
-                    status: 1,
-                    color: colors[r % colors.length]
-                };
-                bricksToBreak++;
+    function initializeAudioSystem() {
+        if (!GameState.audioContext) {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioContextClass) {
+                GameState.audioContext = new AudioContextClass();
             }
         }
     }
 
-    function createInitialBall() {
+    function playCollisionSound() {
+        if (!GameState.audioContext || GameState.soundVolume <= 0) {
+            return;
+        }
+        try {
+            const oscillator = GameState.audioContext.createOscillator();
+            const gainNode = GameState.audioContext.createGain();
+
+            oscillator.type = "sine";
+            oscillator.frequency.setValueAtTime(440, GameState.audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(880, GameState.audioContext.currentTime + 0.05);
+
+            gainNode.gain.setValueAtTime(GameState.soundVolume, GameState.audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.01, GameState.audioContext.currentTime + 0.05);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(GameState.audioContext.destination);
+
+            oscillator.start();
+            oscillator.stop(GameState.audioContext.currentTime + 0.05);
+        } catch (error) {
+        }
+    }
+
+    function createHtmlElement(tagName, styles) {
+        const element = document.createElement(tagName);
+        Object.assign(element.style, styles);
+        element.style.position = "absolute";
+        return element;
+    }
+
+    function generateNewBallObject(startX, startY) {
         return {
-            x: paddle.x + paddle.width / 2,
-            y: paddle.y - 9,
+            element: null,
             radius: 9,
-            dx: 0,
-            dy: 0,
-            speed: BALL_SPEED,
+            positionX: startX,
+            positionY: startY,
+            velocityX: 0,
+            velocityY: 0,
+            currentSpeed: GameState.baseBallSpeed,
             isFireball: false
         };
     }
 
-    function resetBallOnPaddle() {
-        isBallLaunched = false;
-        balls = [createInitialBall()];
-        bullets = [];
-        shield.active = false;
-        paddleFireballBuff = false;
-        if (isPlaying) {
-            launchHintOverlay.classList.remove("d-none");
-            launchHintOverlay.classList.add("d-flex");
+    function clearEntirePlayArea() {
+        if (InterfaceElements.playArea) {
+            InterfaceElements.playArea.innerHTML = "";
         }
     }
 
-    function launchBall() {
-        if (!isPlaying || isBallLaunched) return;
-        isBallLaunched = true;
-        launchHintOverlay.classList.add("d-none");
-        launchHintOverlay.classList.remove("d-flex");
+    function setupPaddleElement() {
+        GameState.paddle.element = createHtmlElement("div", {
+            width: GameState.paddle.width + "px",
+            height: GameState.paddle.height + "px",
+            borderRadius: "6px",
+            backgroundColor: "#00f2fe",
+            transition: "width 0.2s"
+        });
+        InterfaceElements.playArea.appendChild(GameState.paddle.element);
+    }
 
-        balls.forEach(ball => {
-            const angle = (Math.PI / 4) + (Math.random() * (Math.PI / 2));
-            ball.dx = ball.speed * Math.cos(angle) * (Math.random() < 0.5 ? -1 : 1);
-            ball.dy = -Math.abs(ball.speed * Math.sin(angle));
+    function setupShieldElement() {
+        GameState.shield.element = createHtmlElement("div", {
+            width: "600px",
+            height: "10px",
+            bottom: "10px",
+            left: "0px",
+            backgroundColor: "rgba(0, 210, 211, 0.7)",
+            display: "none"
+        });
+        InterfaceElements.playArea.appendChild(GameState.shield.element);
+    }
+
+    function setupBallElement(ballObject) {
+        ballObject.element = createHtmlElement("div", {
+            width: (ballObject.radius * 2) + "px",
+            height: (ballObject.radius * 2) + "px",
+            borderRadius: "50%",
+            backgroundColor: "#ffffff"
+        });
+        InterfaceElements.playArea.appendChild(ballObject.element);
+    }
+
+    function buildLevelBricks() {
+        clearEntirePlayArea();
+        setupPaddleElement();
+        setupShieldElement();
+
+        GameState.activeBricks = [];
+        GameState.fallingItems = [];
+        GameState.activeBalls = [];
+        GameState.totalBricksToBreak = 0;
+        GameState.paddle.width = 120;
+        GameState.paddle.hasFireballBuff = false;
+        GameState.shield.isActive = false;
+
+        for (let col = 0; col < LevelConfig.columnCount; col++) {
+            GameState.activeBricks[col] = [];
+            for (let row = 0; row < LevelConfig.rowCount; row++) {
+                const brickColor = LevelConfig.colors[row % LevelConfig.colors.length];
+                const calculatedX = col * (LevelConfig.brickWidth + LevelConfig.brickPadding) + LevelConfig.offsetLeft;
+                const calculatedY = row * (LevelConfig.brickHeight + LevelConfig.brickPadding) + LevelConfig.offsetTop;
+
+                const brickElement = createHtmlElement("div", {
+                    width: LevelConfig.brickWidth + "px",
+                    height: LevelConfig.brickHeight + "px",
+                    backgroundColor: brickColor,
+                    border: "1px solid rgba(0,0,0,0.3)",
+                    left: calculatedX + "px",
+                    top: calculatedY + "px",
+                    boxSizing: "border-box"
+                });
+
+                InterfaceElements.playArea.appendChild(brickElement);
+
+                GameState.activeBricks[col][row] = {
+                    element: brickElement,
+                    positionX: calculatedX,
+                    positionY: calculatedY,
+                    isActive: true
+                };
+                GameState.totalBricksToBreak++;
+            }
+        }
+    }
+
+    function resetBallsToPaddle() {
+        GameState.isBallLaunched = false;
+        GameState.paddle.hasFireballBuff = false;
+
+        GameState.activeBalls.forEach(ball => {
+            if (ball.element) ball.element.remove();
+        });
+
+        const initialBall = generateNewBallObject(
+            GameState.paddle.positionX + GameState.paddle.width / 2,
+            GameState.paddle.positionY - 9
+        );
+        setupBallElement(initialBall);
+        GameState.activeBalls = [initialBall];
+
+        if (GameState.isGameRunning) {
+            InterfaceElements.launchHintOverlay.classList.remove("d-none");
+            InterfaceElements.launchHintOverlay.classList.add("d-flex");
+        }
+    }
+
+    function launchAllBalls() {
+        if (!GameState.isGameRunning || GameState.isBallLaunched) {
+            return;
+        }
+        GameState.isBallLaunched = true;
+        InterfaceElements.launchHintOverlay.classList.add("d-none");
+        InterfaceElements.launchHintOverlay.classList.remove("d-flex");
+
+        GameState.activeBalls.forEach(ball => {
+            const launchAngle = (Math.PI / 4) + (Math.random() * (Math.PI / 2));
+            const directionX = Math.random() < 0.5 ? -1 : 1;
+            ball.velocityX = ball.currentSpeed * Math.cos(launchAngle) * directionX;
+            ball.velocityY = -Math.abs(ball.currentSpeed * Math.sin(launchAngle));
         });
     }
 
-    function drawPaddle() {
-        ctx.beginPath();
-        if (ctx.roundRect) {
-            ctx.roundRect(paddle.x, paddle.y, paddle.width, paddle.height, 6);
-        } else {
-            ctx.rect(paddle.x, paddle.y, paddle.width, paddle.height);
-        }
-        ctx.fillStyle = paddleFireballBuff ? "#ff4757" : "#00f2fe";
-        ctx.fill();
-        ctx.closePath();
-    }
+    function renderGraphicsToScreen() {
+        GameState.paddle.element.style.transform = `translate(${GameState.paddle.positionX}px, ${GameState.paddle.positionY}px)`;
+        GameState.paddle.element.style.width = GameState.paddle.width + "px";
+        GameState.paddle.element.style.backgroundColor = GameState.paddle.hasFireballBuff ? "#ff4757" : "#00f2fe";
 
-    function drawBalls() {
-        balls.forEach(ball => {
-            ctx.beginPath();
-            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-            ctx.fillStyle = ball.isFireball ? "#ff4757" : "#ffffff";
+        if (GameState.shield.isActive && GameState.shield.remainingTime > 0) {
+            GameState.shield.element.style.display = "block";
+            const isBlinking = GameState.shield.remainingTime < 180 && Math.floor(GameState.shield.remainingTime / 15) % 2 === 0;
+            GameState.shield.element.style.opacity = isBlinking ? "0.2" : "1";
+        } else {
+            GameState.shield.element.style.display = "none";
+        }
+
+        GameState.activeBalls.forEach(ball => {
+            const visualX = ball.positionX - ball.radius;
+            const visualY = ball.positionY - ball.radius;
+            ball.element.style.transform = `translate(${visualX}px, ${visualY}px)`;
+
             if (ball.isFireball) {
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = "#ff4757";
+                ball.element.style.backgroundColor = "#ff4757";
+                ball.element.style.boxShadow = "0 0 15px #ff4757";
+            } else {
+                ball.element.style.backgroundColor = "#ffffff";
+                ball.element.style.boxShadow = "none";
             }
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.closePath();
+        });
+
+        GameState.fallingItems.forEach(item => {
+            const visualX = item.positionX - item.width / 2;
+            const visualY = item.positionY - item.height / 2;
+            item.element.style.transform = `translate(${visualX}px, ${visualY}px)`;
         });
     }
 
-    function drawBullets() {
-        bullets.forEach(b => {
-            ctx.beginPath();
-            ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-            ctx.fillStyle = "#feca57";
-            ctx.fill();
-            ctx.closePath();
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Right" || event.key === "ArrowRight" || event.key === "d" || event.key === "D") {
+            GameState.controls.moveRight = true;
+        }
+        if (event.key === "Left" || event.key === "ArrowLeft" || event.key === "a" || event.key === "A") {
+            GameState.controls.moveLeft = true;
+        }
+    });
+
+    document.addEventListener("keyup", (event) => {
+        if (event.key === "Right" || event.key === "ArrowRight" || event.key === "d" || event.key === "D") {
+            GameState.controls.moveRight = false;
+        }
+        if (event.key === "Left" || event.key === "ArrowLeft" || event.key === "a" || event.key === "A") {
+            GameState.controls.moveLeft = false;
+        }
+    });
+
+    InterfaceElements.playArea.addEventListener("mousemove", (event) => {
+        if (!GameState.isGameRunning) {
+            return;
+        }
+        const bounds = InterfaceElements.playArea.getBoundingClientRect();
+        const relativeMouseX = (event.clientX - bounds.left) * (600 / bounds.width);
+
+        if (relativeMouseX > 0 && relativeMouseX < 600) {
+            const limitedX = Math.max(0, Math.min(600 - GameState.paddle.width, relativeMouseX - GameState.paddle.width / 2));
+            GameState.paddle.positionX = limitedX;
+
+            if (!GameState.isBallLaunched && GameState.activeBalls.length > 0) {
+                GameState.activeBalls[0].positionX = GameState.paddle.positionX + GameState.paddle.width / 2;
+            }
+        }
+    });
+
+    InterfaceElements.playArea.addEventListener("click", () => {
+        launchAllBalls();
+    });
+
+    function spawnRandomItem(spawnX, spawnY) {
+        if (Math.random() >= 0.25) {
+            return;
+        }
+
+        const standardItems = [
+            { type: "expand", color: "#2ed573", icon: "↔️" },
+            { type: "life", color: "#ff4757", icon: "❤️" },
+            { type: "slow", color: "#1e90ff", icon: "🐢" },
+            { type: "fireball", color: "#ff9f43", icon: "🔥" },
+            { type: "shield", color: "#00d2d3", icon: "🛡️" }
+        ];
+
+        if (GameState.activeBalls.length <= 2) {
+            standardItems.push({ type: "split", color: "#f368e0", icon: "🔱" });
+            standardItems.push({ type: "shoot", color: "#feca57", icon: "🔫" });
+        }
+
+        const pickedItemInfo = standardItems[Math.floor(Math.random() * standardItems.length)];
+
+        const itemElement = createHtmlElement("div", {
+            width: "24px",
+            height: "24px",
+            backgroundColor: pickedItemInfo.color,
+            borderRadius: "4px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "14px",
+            color: "#ffffff",
+            cursor: "default"
+        });
+        itemElement.innerText = pickedItemInfo.icon;
+        InterfaceElements.playArea.appendChild(itemElement);
+
+        GameState.fallingItems.push({
+            positionX: spawnX,
+            positionY: spawnY,
+            width: 24,
+            height: 24,
+            type: pickedItemInfo.type,
+            element: itemElement
         });
     }
 
-    function drawShield() {
-        if (shield.active && shield.timer > 0) {
-            ctx.beginPath();
-            ctx.rect(0, canvas.height - 10, canvas.width, 10);
-            if (shield.timer < 180 && Math.floor(shield.timer / 15) % 2 === 0) {
-                ctx.fillStyle = "rgba(0, 210, 211, 0.2)";
-            } else {
-                ctx.fillStyle = "rgba(0, 210, 211, 0.7)";
-            }
-            ctx.fill();
-            ctx.closePath();
-        }
-    }
+    function processBrickDestruction(brickObject) {
+        brickObject.isActive = false;
+        brickObject.element.remove();
 
-    function drawItems() {
-        for (let i = 0; i < items.length; i++) {
-            let item = items[i];
-            ctx.beginPath();
-            if (ctx.roundRect) {
-                ctx.roundRect(item.x - item.width / 2, item.y - item.height / 2, item.width, item.height, 4);
-            } else {
-                ctx.rect(item.x - item.width / 2, item.y - item.height / 2, item.width, item.height);
-            }
-            ctx.fillStyle = item.color;
-            ctx.fill();
+        GameState.currentScore += 10;
+        InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
+        GameState.totalBricksToBreak--;
 
-            ctx.fillStyle = "white";
-            ctx.font = "14px Arial";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(item.icon, item.x, item.y + 1);
-            ctx.closePath();
-        }
-    }
+        playCollisionSound();
+        spawnRandomItem(brickObject.positionX + LevelConfig.brickWidth / 2, brickObject.positionY + LevelConfig.brickHeight / 2);
 
-    function drawBricks() {
-        for (let c = 0; c < brickColumnCount; c++) {
-            for (let r = 0; r < brickRowCount; r++) {
-                const b = bricks[c][r];
-                if (b && b.status === 1) {
-                    ctx.beginPath();
-                    ctx.rect(b.x, b.y, brickWidth, brickHeight);
-                    ctx.fillStyle = b.color;
-                    ctx.fill();
-
-                    ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                    ctx.closePath();
-                }
-            }
-        }
-    }
-
-    function renderScene() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawShield();
-        drawBricks();
-        drawItems();
-        drawPaddle();
-        drawBalls();
-    }
-
-    initBricks(currentLevel);
-    resetBallOnPaddle();
-    renderScene();
-
-    let rightPressed = false;
-    let leftPressed = false;
-
-    document.addEventListener("keydown", (e) => {
-        if (e.key === "Right" || e.key === "ArrowRight" || e.key === "d" || e.key === "D") rightPressed = true;
-        if (e.key === "Left" || e.key === "ArrowLeft" || e.key === "a" || e.key === "A") leftPressed = true;
-    });
-
-    document.addEventListener("keyup", (e) => {
-        if (e.key === "Right" || e.key === "ArrowRight" || e.key === "d" || e.key === "D") rightPressed = false;
-        if (e.key === "Left" || e.key === "ArrowLeft" || e.key === "a" || e.key === "A") leftPressed = false;
-    });
-
-    canvas.addEventListener("mousemove", (e) => {
-        if (!isPlaying) return;
-        const rect = canvas.getBoundingClientRect();
-        const relativeX = (e.clientX - rect.left) * (canvas.width / rect.width);
-        if (relativeX > 0 && relativeX < canvas.width) {
-            paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, relativeX - paddle.width / 2));
-            if (!isBallLaunched && balls.length > 0) {
-                balls[0].x = paddle.x + paddle.width / 2;
-            }
-        }
-    });
-
-    canvas.addEventListener("click", () => {
-        launchBall();
-    });
-
-    function breakBrick(b) {
-        b.status = 0;
-        score += 10;
-        hudScore.textContent = score;
-        // playHitSound();
-        bricksToBreak--;
-
-        if (Math.random() < 0.25) {
-            const types = [
-                {type: "expand", color: "#2ed573", icon: "↔️"},
-                {type: "life", color: "#ff4757", icon: "❤️"},
-                {type: "slow", color: "#1e90ff", icon: "🐢"},
-                {type: "fireball", color: "#ff9f43", icon: "🔥"},
-                {type: "shield", color: "#00d2d3", icon: "🛡️"}
-            ];
-            if (balls.length <= 2) {
-                types.push({type: "split", color: "#f368e0", icon: "🔱"});
-                types.push({type: "shoot", color: "#feca57", icon: "🔫"});
-            }
-            const randomItem = types[Math.floor(Math.random() * types.length)];
-            items.push({
-                x: b.x + brickWidth / 2,
-                y: b.y + brickHeight / 2,
-                width: 24,
-                height: 24,
-                type: randomItem.type,
-                color: randomItem.color,
-                icon: randomItem.icon
-            });
-        }
-
-        if (bricksToBreak === 0) {
-            isPlaying = false;
-            cancelAnimationFrame(animationId);
+        if (GameState.totalBricksToBreak === 0) {
+            GameState.isGameRunning = false;
+            cancelAnimationFrame(GameState.animationFrameId);
             localStorage.removeItem("BRICK_BREAKER_SAVE");
-            checkSavedGame();
-            launchHintOverlay.classList.add("d-none");
-            launchHintOverlay.classList.remove("d-flex");
-            victoryOverlay.classList.remove("d-none");
-            victoryOverlay.classList.add("d-flex");
+            updateContinueButtonState();
+
+            InterfaceElements.launchHintOverlay.classList.add("d-none");
+            InterfaceElements.launchHintOverlay.classList.remove("d-flex");
+            InterfaceElements.victoryOverlay.classList.remove("d-none");
+            InterfaceElements.victoryOverlay.classList.add("d-flex");
         }
     }
 
-    function updateItems() {
-        for (let i = 0; i < items.length; i++) {
-            let item = items[i];
-            item.y += 1.5;
+    function checkCollisionBetweenBallsAndBricks() {
+        GameState.activeBalls.forEach(ball => {
+            let hasBouncedThisFrame = false;
 
-            if (
-                item.y + item.height / 2 > paddle.y &&
-                item.y - item.height / 2 < paddle.y + paddle.height &&
-                item.x + item.width / 2 > paddle.x &&
-                item.x - item.width / 2 < paddle.x + paddle.width
-            ) {
-                if (item.type === "expand") {
-                    paddle.width = Math.min(240, paddle.width + 30);
-                } else if (item.type === "life") {
-                    if (lives < 5) {
-                        lives++;
-                        hudLives.textContent = lives;
-                    } else {
-                        score += 50;
-                        hudScore.textContent = score;
-                    }
-                }else if (item.type === "slow") {
-                    balls.forEach(b => {
-                        const currentSpeed = Math.hypot(b.dx, b.dy);
-                        if (currentSpeed > 2.5) {
-                            b.dx *= 0.8;
-                            b.dy *= 0.8;
-                        }
-                    });
-                } else if (item.type === "split") {
-                    let newBalls = [];
-                    balls.forEach(b => {
-                        let speed = b.speed || BALL_SPEED;
-                        let angle = Math.atan2(b.dy, b.dx);
-                        let a1 = angle + Math.PI / 6;
-                        let a2 = angle - Math.PI / 6;
-                        newBalls.push({...b, dx: speed * Math.cos(a1), dy: speed * Math.sin(a1)});
-                        newBalls.push({...b, dx: speed * Math.cos(a2), dy: speed * Math.sin(a2)});
-                    });
-                    balls = balls.concat(newBalls);
-                } else if (item.type === "shoot") {
-                    let speed = BALL_SPEED;
-                    let angle1 = -Math.PI / 2;
-                    let angle2 = -Math.PI / 2 - Math.PI / 6;
-                    let angle3 = -Math.PI / 2 + Math.PI / 6;
+            for (let col = 0; col < LevelConfig.columnCount; col++) {
+                for (let row = 0; row < LevelConfig.rowCount; row++) {
+                    const brick = GameState.activeBricks[col][row];
 
-                    balls.push({
-                        x: paddle.x + paddle.width / 2,
-                        y: paddle.y - 10,
-                        radius: 9,
-                        dx: speed * Math.cos(angle1),
-                        dy: speed * Math.sin(angle1),
-                        speed: speed,
-                        isFireball: false
-                    });
-                    balls.push({
-                        x: paddle.x + paddle.width / 2,
-                        y: paddle.y - 10,
-                        radius: 9,
-                        dx: speed * Math.cos(angle2),
-                        dy: speed * Math.sin(angle2),
-                        speed: speed,
-                        isFireball: false
-                    });
-                    balls.push({
-                        x: paddle.x + paddle.width / 2,
-                        y: paddle.y - 10,
-                        radius: 9,
-                        dx: speed * Math.cos(angle3),
-                        dy: speed * Math.sin(angle3),
-                        speed: speed,
-                        isFireball: false
-                    });
-                } else if (item.type === "fireball") {
-                    paddleFireballBuff = true;
-                } else if (item.type === "shield") {
-                    shield.active = true;
-                    shield.timer = 600;
-                }
+                    if (brick && brick.isActive) {
+                        const isOverlappingX = ball.positionX + ball.radius > brick.positionX && ball.positionX - ball.radius < brick.positionX + LevelConfig.brickWidth;
+                        const isOverlappingY = ball.positionY + ball.radius > brick.positionY && ball.positionY - ball.radius < brick.positionY + LevelConfig.brickHeight;
 
-                // playHitSound();
-                items.splice(i, 1);
-                i--;
-            } else if (item.y - item.height / 2 > canvas.height) {
-                items.splice(i, 1);
-                i--;
-            }
-        }
-    }
-
-    function collisionDetection() {
-        for (let i = bullets.length - 1; i >= 0; i--) {
-            let bullet = bullets[i];
-            let bulletHit = false;
-            for (let c = 0; c < brickColumnCount; c++) {
-                for (let r = 0; r < brickRowCount; r++) {
-                    const b = bricks[c][r];
-                    if (b && b.status === 1) {
-                        if (
-                            bullet.x + bullet.radius > b.x &&
-                            bullet.x - bullet.radius < b.x + brickWidth &&
-                            bullet.y + bullet.radius > b.y &&
-                            bullet.y - bullet.radius < b.y + brickHeight
-                        ) {
-                            breakBrick(b);
-                            bulletHit = true;
-                            break;
-                        }
-                    }
-                }
-                if (bulletHit) break;
-            }
-            if (bulletHit) bullets.splice(i, 1);
-        }
-
-        balls.forEach(ball => {
-            let hasBounced = false;
-            for (let c = 0; c < brickColumnCount; c++) {
-                for (let r = 0; r < brickRowCount; r++) {
-                    const b = bricks[c][r];
-                    if (b && b.status === 1) {
-                        if (
-                            ball.x + ball.radius > b.x &&
-                            ball.x - ball.radius < b.x + brickWidth &&
-                            ball.y + ball.radius > b.y &&
-                            ball.y - ball.radius < b.y + brickHeight
-                        ) {
-                            if (!ball.isFireball && !hasBounced) {
-                                ball.dy = -ball.dy;
-                                hasBounced = true;
+                        if (isOverlappingX && isOverlappingY) {
+                            if (!ball.isFireball && !hasBouncedThisFrame) {
+                                ball.velocityY = -ball.velocityY;
+                                hasBouncedThisFrame = true;
                             }
-                            breakBrick(b);
+                            processBrickDestruction(brick);
                         }
                     }
                 }
@@ -482,378 +424,550 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function gameLoop() {
-        if (!isPlaying) return;
+    function updateFallingItemsLogic() {
+        for (let index = 0; index < GameState.fallingItems.length; index++) {
+            const item = GameState.fallingItems[index];
+            item.positionY += 1.5;
 
-        if (shield.active) {
-            shield.timer--;
-            if (shield.timer <= 0) shield.active = false;
+            const isTouchingPaddleY = item.positionY + item.height / 2 > GameState.paddle.positionY && item.positionY - item.height / 2 < GameState.paddle.positionY + GameState.paddle.height;
+            const isTouchingPaddleX = item.positionX + item.width / 2 > GameState.paddle.positionX && item.positionX - item.width / 2 < GameState.paddle.positionX + GameState.paddle.width;
+
+            if (isTouchingPaddleY && isTouchingPaddleX) {
+                if (item.type === "expand") {
+                    GameState.paddle.width = Math.min(240, GameState.paddle.width + 30);
+                }
+                else if (item.type === "life") {
+                    if (GameState.currentLives < 5) {
+                        GameState.currentLives++;
+                        InterfaceElements.livesDisplay.textContent = GameState.currentLives;
+                    } else {
+                        GameState.currentScore += 50;
+                        InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
+                    }
+                }
+                else if (item.type === "slow") {
+                    GameState.activeBalls.forEach(ball => {
+                        const actualSpeed = Math.hypot(ball.velocityX, ball.velocityY);
+                        if (actualSpeed > 2.5) {
+                            ball.velocityX *= 0.8;
+                            ball.velocityY *= 0.8;
+                        }
+                    });
+                }
+                else if (item.type === "split") {
+                    const newSplitBalls = [];
+                    GameState.activeBalls.forEach(ball => {
+                        const currentAngle = Math.atan2(ball.velocityY, ball.velocityX);
+                        const angleOffset1 = currentAngle + Math.PI / 6;
+                        const angleOffset2 = currentAngle - Math.PI / 6;
+
+                        const ballOne = generateNewBallObject(ball.positionX, ball.positionY);
+                        ballOne.velocityX = ball.currentSpeed * Math.cos(angleOffset1);
+                        ballOne.velocityY = ball.currentSpeed * Math.sin(angleOffset1);
+                        ballOne.isFireball = ball.isFireball;
+                        setupBallElement(ballOne);
+                        newSplitBalls.push(ballOne);
+
+                        const ballTwo = generateNewBallObject(ball.positionX, ball.positionY);
+                        ballTwo.velocityX = ball.currentSpeed * Math.cos(angleOffset2);
+                        ballTwo.velocityY = ball.currentSpeed * Math.sin(angleOffset2);
+                        ballTwo.isFireball = ball.isFireball;
+                        setupBallElement(ballTwo);
+                        newSplitBalls.push(ballTwo);
+                    });
+                    GameState.activeBalls = GameState.activeBalls.concat(newSplitBalls);
+                }
+                else if (item.type === "shoot") {
+                    const anglesToShoot = [-Math.PI / 2, -Math.PI / 2 - Math.PI / 6, -Math.PI / 2 + Math.PI / 6];
+                    anglesToShoot.forEach(angle => {
+                        const bulletBall = generateNewBallObject(GameState.paddle.positionX + GameState.paddle.width / 2, GameState.paddle.positionY - 10);
+                        bulletBall.velocityX = bulletBall.currentSpeed * Math.cos(angle);
+                        bulletBall.velocityY = bulletBall.currentSpeed * Math.sin(angle);
+                        setupBallElement(bulletBall);
+                        GameState.activeBalls.push(bulletBall);
+                    });
+                }
+                else if (item.type === "fireball") {
+                    GameState.paddle.hasFireballBuff = true;
+                }
+                else if (item.type === "shield") {
+                    GameState.shield.isActive = true;
+                    GameState.shield.remainingTime = 600;
+                }
+
+                playCollisionSound();
+                item.element.remove();
+                GameState.fallingItems.splice(index, 1);
+                index--;
+            }
+            else if (item.positionY - item.height / 2 > 750) {
+                item.element.remove();
+                GameState.fallingItems.splice(index, 1);
+                index--;
+            }
+        }
+    }
+
+    function processMainGameLoop() {
+        if (!GameState.isGameRunning) {
+            return;
         }
 
-        if (!isBallLaunched) {
-            if (balls.length > 0) {
-                balls[0].x = paddle.x + paddle.width / 2;
-                balls[0].y = paddle.y - balls[0].radius;
+        if (GameState.shield.isActive) {
+            GameState.shield.remainingTime--;
+            if (GameState.shield.remainingTime <= 0) {
+                GameState.shield.isActive = false;
+            }
+        }
+
+        if (!GameState.isBallLaunched) {
+            if (GameState.activeBalls.length > 0) {
+                GameState.activeBalls[0].positionX = GameState.paddle.positionX + GameState.paddle.width / 2;
+                GameState.activeBalls[0].positionY = GameState.paddle.positionY - GameState.activeBalls[0].radius;
             }
         } else {
-            for (let i = balls.length - 1; i >= 0; i--) {
-                let ball = balls[i];
+            for (let i = GameState.activeBalls.length - 1; i >= 0; i--) {
+                const ball = GameState.activeBalls[i];
 
-                const removeFireball = () => {
+                function removeFireballState() {
                     if (ball.isFireball) {
                         ball.isFireball = false;
-                        ball.speed = BALL_SPEED;
-                        const angle = Math.atan2(ball.dy, ball.dx);
-                        ball.dx = ball.speed * Math.cos(angle);
-                        ball.dy = ball.speed * Math.sin(angle);
+                        ball.currentSpeed = GameState.baseBallSpeed;
+                        const currentDirectionAngle = Math.atan2(ball.velocityY, ball.velocityX);
+                        ball.velocityX = ball.currentSpeed * Math.cos(currentDirectionAngle);
+                        ball.velocityY = ball.currentSpeed * Math.sin(currentDirectionAngle);
                     }
-                };
-
-                if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
-                    ball.dx = -ball.dx;
-                    // playHitSound();
                 }
 
-                if (ball.y + ball.dy < ball.radius) {
-                    ball.dy = -ball.dy;
-                    // playHitSound();
-                    removeFireball();
+                const hitLeftOrRightWall = ball.positionX + ball.velocityX > 600 - ball.radius || ball.positionX + ball.velocityX < ball.radius;
+                if (hitLeftOrRightWall) {
+                    ball.velocityX = -ball.velocityX;
+                    playCollisionSound();
                 }
 
-                else if (ball.y + ball.dy > paddle.y - ball.radius) {
-                    if (ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
-                        const hitPoint = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
-                        const maxBounceAngle = Math.PI / 3;
-                        const bounceAngle = hitPoint * maxBounceAngle;
+                const hitCeiling = ball.positionY + ball.velocityY < ball.radius;
+                if (hitCeiling) {
+                    ball.velocityY = -ball.velocityY;
+                    playCollisionSound();
+                    removeFireballState();
+                }
+                else if (ball.positionY + ball.velocityY > GameState.paddle.positionY - ball.radius) {
+                    const hitPaddleX = ball.positionX > GameState.paddle.positionX && ball.positionX < GameState.paddle.positionX + GameState.paddle.width;
 
-                        if (paddleFireballBuff && !ball.isFireball) {
+                    if (hitPaddleX) {
+                        const relativeHitPoint = (ball.positionX - (GameState.paddle.positionX + GameState.paddle.width / 2)) / (GameState.paddle.width / 2);
+                        const maximumBounceAngle = Math.PI / 3;
+                        const finalBounceAngle = relativeHitPoint * maximumBounceAngle;
+
+                        if (GameState.paddle.hasFireballBuff && !ball.isFireball) {
                             ball.isFireball = true;
-                            ball.speed = BALL_SPEED * 3;
-                            paddleFireballBuff = false;
+                            ball.currentSpeed = GameState.baseBallSpeed * 3;
+                            GameState.paddle.hasFireballBuff = false;
                         }
 
-                        ball.dx = ball.speed * Math.sin(bounceAngle);
-                        ball.dy = -ball.speed * Math.cos(bounceAngle);
-                        // playHitSound();
-                    } else if (ball.y + ball.dy > canvas.height - ball.radius) {
-                        if (shield.active) {
-                            ball.dy = -ball.dy;
-                            ball.y = canvas.height - ball.radius - 15;
-                            shield.active = false;
-                            // playHitSound();
+                        ball.velocityX = ball.currentSpeed * Math.sin(finalBounceAngle);
+                        ball.velocityY = -ball.currentSpeed * Math.cos(finalBounceAngle);
+                        playCollisionSound();
+                    }
+                    else if (ball.positionY + ball.velocityY > 750 - ball.radius) {
+                        if (GameState.shield.isActive) {
+                            ball.velocityY = -ball.velocityY;
+                            ball.positionY = 750 - ball.radius - 15;
+                            GameState.shield.isActive = false;
+                            playCollisionSound();
                         } else {
-                            balls.splice(i, 1);
+                            ball.element.remove();
+                            GameState.activeBalls.splice(i, 1);
                         }
                     }
                 }
 
-                ball.x += ball.dx;
-                ball.y += ball.dy;
+                ball.positionX += ball.velocityX;
+                ball.positionY += ball.velocityY;
             }
 
-            if (balls.length === 0) {
-                lives--;
-                hudLives.textContent = lives;
-                if (lives <= 0) {
+            if (GameState.activeBalls.length === 0) {
+                GameState.currentLives--;
+                InterfaceElements.livesDisplay.textContent = GameState.currentLives;
+
+                if (GameState.currentLives <= 0) {
                     localStorage.removeItem("BRICK_BREAKER_SAVE");
-                    checkSavedGame();
-                    switchToHomeScreen();
+                    updateContinueButtonState();
+                    switchToHomeMenuScreen();
                     return;
                 } else {
-                    resetBallOnPaddle();
+                    resetBallsToPaddle();
                 }
             }
 
-            collisionDetection();
-            updateItems();
+            checkCollisionBetweenBallsAndBricks();
+            updateFallingItemsLogic();
         }
 
-        if (rightPressed && paddle.x < canvas.width - paddle.width) {
-            paddle.x += paddle.speed;
-            if (!isBallLaunched && balls.length > 0) balls[0].x = paddle.x + paddle.width / 2;
-        } else if (leftPressed && paddle.x > 0) {
-            paddle.x -= paddle.speed;
-            if (!isBallLaunched && balls.length > 0) balls[0].x = paddle.x + paddle.width / 2;
+        if (GameState.controls.moveRight && GameState.paddle.positionX < 600 - GameState.paddle.width) {
+            GameState.paddle.positionX += GameState.paddle.moveSpeed;
+            if (!GameState.isBallLaunched && GameState.activeBalls.length > 0) {
+                GameState.activeBalls[0].positionX = GameState.paddle.positionX + GameState.paddle.width / 2;
+            }
+        }
+        else if (GameState.controls.moveLeft && GameState.paddle.positionX > 0) {
+            GameState.paddle.positionX -= GameState.paddle.moveSpeed;
+            if (!GameState.isBallLaunched && GameState.activeBalls.length > 0) {
+                GameState.activeBalls[0].positionX = GameState.paddle.positionX + GameState.paddle.width / 2;
+            }
         }
 
-        renderScene();
-        if (isPlaying) {
-            animationId = requestAnimationFrame(gameLoop);
+        renderGraphicsToScreen();
+
+        if (GameState.isGameRunning) {
+            GameState.animationFrameId = requestAnimationFrame(processMainGameLoop);
         }
     }
-    function expandGameScreen() {
-        mainHeader.classList.add("d-none");
-        homeActions.classList.add("d-none");
-        homeActions.classList.remove("d-flex");
-        levelSelectArea.classList.add("d-none");
-        levelSelectArea.classList.remove("d-flex");
-        homeOverlay.classList.add("d-none");
-        homeOverlay.classList.remove("d-flex");
 
-        screenWrapper.classList.add("playing-size");
-        gameHud.classList.remove("d-none");
-        gameHud.classList.add("d-flex");
+    function expandGameplayContainer() {
+        InterfaceElements.mainHeader.classList.add("d-none");
+        InterfaceElements.homeActions.classList.add("d-none");
+        InterfaceElements.homeActions.classList.remove("d-flex");
+        InterfaceElements.levelSelectArea.classList.add("d-none");
+        InterfaceElements.levelSelectArea.classList.remove("d-flex");
+        InterfaceElements.homeOverlay.classList.add("d-none");
+        InterfaceElements.homeOverlay.classList.remove("d-flex");
+
+        InterfaceElements.screenWrapper.classList.add("playing-size");
+        InterfaceElements.gameHud.classList.remove("d-none");
+        InterfaceElements.gameHud.classList.add("d-flex");
     }
 
-    function switchToHomeScreen() {
-        isPlaying = false;
-        cancelAnimationFrame(animationId);
+    function switchToHomeMenuScreen() {
+        GameState.isGameRunning = false;
+        cancelAnimationFrame(GameState.animationFrameId);
 
-        screenWrapper.classList.remove("playing-size");
-        gameHud.classList.add("d-none");
-        gameHud.classList.remove("d-flex");
+        InterfaceElements.screenWrapper.classList.remove("playing-size");
+        InterfaceElements.gameHud.classList.add("d-none");
+        InterfaceElements.gameHud.classList.remove("d-flex");
 
-        launchHintOverlay.classList.add("d-none");
-        launchHintOverlay.classList.remove("d-flex");
-        tutorialOverlay.classList.add("d-none");
-        tutorialOverlay.classList.remove("d-flex");
-        pauseOverlay.classList.add("d-none");
-        pauseOverlay.classList.remove("d-flex");
-        victoryOverlay.classList.add("d-none");
-        victoryOverlay.classList.remove("d-flex");
+        InterfaceElements.launchHintOverlay.classList.add("d-none");
+        InterfaceElements.launchHintOverlay.classList.remove("d-flex");
+        InterfaceElements.tutorialOverlay.classList.add("d-none");
+        InterfaceElements.tutorialOverlay.classList.remove("d-flex");
+        InterfaceElements.pauseOverlay.classList.add("d-none");
+        InterfaceElements.pauseOverlay.classList.remove("d-flex");
+        InterfaceElements.victoryOverlay.classList.add("d-none");
+        InterfaceElements.victoryOverlay.classList.remove("d-flex");
 
-        mainHeader.classList.remove("d-none");
-        homeActions.classList.remove("d-none");
-        homeActions.classList.add("d-flex");
-        levelSelectArea.classList.add("d-none");
-        homeOverlay.classList.remove("d-none");
-        homeOverlay.classList.add("d-flex");
+        InterfaceElements.mainHeader.classList.remove("d-none");
+        InterfaceElements.homeActions.classList.remove("d-none");
+        InterfaceElements.homeActions.classList.add("d-flex");
+        InterfaceElements.levelSelectArea.classList.add("d-none");
+        InterfaceElements.homeOverlay.classList.remove("d-none");
+        InterfaceElements.homeOverlay.classList.add("d-flex");
 
-        initBricks(currentLevel);
-        resetBallOnPaddle();
-        renderScene();
-        checkSavedGame();
+        buildLevelBricks();
+        resetBallsToPaddle();
+        renderGraphicsToScreen();
+        updateContinueButtonState();
     }
 
-    function loadLevelFromMenu(level) {
-        currentLevel = level;
-        score = 0;
-        lives = 3;
-        hudScore.textContent = score;
-        hudLives.textContent = lives;
-        if (hudLevel) hudLevel.textContent = currentLevel;
+    function loadSelectedLevelToScreen(levelNumber) {
+        GameState.currentLevel = levelNumber;
+        GameState.currentScore = 0;
+        GameState.currentLives = 3;
 
-        if (level === 1) {
-            if (tutorialTitle) tutorialTitle.textContent = "MÀN 1: CƠ BẢN";
-            if (tutorialDesc) tutorialDesc.innerHTML = "👉 <strong>Cơ chế:</strong> Khối gạch vỡ sau 1 chạm.<br>🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc phím mũi tên.<br>🖱️ <strong>Khởi động:</strong> Nhấn chuột trái để phóng bóng.";
+        InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
+        InterfaceElements.livesDisplay.textContent = GameState.currentLives;
+
+        if (InterfaceElements.levelDisplay) {
+            InterfaceElements.levelDisplay.textContent = GameState.currentLevel;
         }
 
-        paddle.x = 600 / 2 - paddle.width / 2;
-        initBricks(currentLevel);
-        resetBallOnPaddle();
-        renderScene();
-        expandGameScreen();
+        if (levelNumber === 1) {
+            const titleElement = document.getElementById("tutorialTitle");
+            const descriptionElement = document.getElementById("tutorialDesc");
+            if (titleElement) titleElement.textContent = "MÀN 1: CƠ BẢN";
+            if (descriptionElement) descriptionElement.innerHTML = "👉 Khối gạch vỡ sau 1 chạm.<br>🕹️ Điều khiển: Chuột hoặc phím mũi tên.<br>🖱️ Khởi động: Nhấn chuột trái.";
+        }
 
-        victoryOverlay.classList.add("d-none");
-        victoryOverlay.classList.remove("d-flex");
-        tutorialOverlay.classList.remove("d-none");
-        tutorialOverlay.classList.add("d-flex");
+        GameState.paddle.positionX = 240;
+        buildLevelBricks();
+        resetBallsToPaddle();
+        renderGraphicsToScreen();
+        expandGameplayContainer();
+
+        InterfaceElements.victoryOverlay.classList.add("d-none");
+        InterfaceElements.victoryOverlay.classList.remove("d-flex");
+        InterfaceElements.tutorialOverlay.classList.remove("d-none");
+        InterfaceElements.tutorialOverlay.classList.add("d-flex");
     }
 
-    function saveGameProgress() {
-        const data = {
-            level: currentLevel,
-            score: score,
-            lives: lives,
-            paddle: {x: paddle.x, y: paddle.y},
-            balls: balls,
-            isBallLaunched: isBallLaunched,
-            bricks: bricks
+    function saveCurrentProgressToStorage() {
+        const brickMatrixForSave = [];
+        for (let col = 0; col < LevelConfig.columnCount; col++) {
+            brickMatrixForSave[col] = [];
+            for (let row = 0; row < LevelConfig.rowCount; row++) {
+                brickMatrixForSave[col][row] = GameState.activeBricks[col][row].isActive ? 1 : 0;
+            }
+        }
+
+        const dataToSave = {
+            level: GameState.currentLevel,
+            score: GameState.currentScore,
+            lives: GameState.currentLives,
+            paddleX: GameState.paddle.positionX,
+            isLaunched: GameState.isBallLaunched,
+            savedBalls: GameState.activeBalls.map(ball => ({
+                posX: ball.positionX,
+                posY: ball.positionY,
+                velX: ball.velocityX,
+                velY: ball.velocityY,
+                speed: ball.currentSpeed,
+                isRed: ball.isFireball
+            })),
+            brickMatrix: brickMatrixForSave
         };
-        localStorage.setItem("BRICK_BREAKER_SAVE", JSON.stringify(data));
-        checkSavedGame();
+        localStorage.setItem("BRICK_BREAKER_SAVE", JSON.stringify(dataToSave));
+        updateContinueButtonState();
     }
 
-    function checkSavedGame() {
-        if (!btnContinue) return;
+    function updateContinueButtonState() {
+        if (!Buttons.continueGame) {
+            return;
+        }
         if (localStorage.getItem("BRICK_BREAKER_SAVE")) {
-            btnContinue.removeAttribute("disabled");
+            Buttons.continueGame.removeAttribute("disabled");
         } else {
-            btnContinue.setAttribute("disabled", "true");
+            Buttons.continueGame.setAttribute("disabled", "true");
         }
     }
 
-    checkSavedGame();
+    updateContinueButtonState();
 
-    let resetActionCallback = null;
+    let callbackForReset = null;
+    let modalInstanceForConfirm = null;
+    const confirmModalNode = document.getElementById("confirmResetModal");
+    if (confirmModalNode && typeof bootstrap !== "undefined") {
+        modalInstanceForConfirm = new bootstrap.Modal(confirmModalNode);
+    }
 
-    function showConfirmOrRun(action) {
+    function showWarningBeforeExecute(actionToRun) {
         if (localStorage.getItem("BRICK_BREAKER_SAVE")) {
-            resetActionCallback = action;
-            if (confirmResetModalInstance) {
-                confirmResetModalInstance.show();
-            } else if (confirm("Mọi tiến trình của bạn sẽ bị xóa. Bạn có muốn tiếp tục?")) {
-                action();
+            callbackForReset = actionToRun;
+            if (modalInstanceForConfirm) {
+                modalInstanceForConfirm.show();
+            } else if (confirm("Tiến trình sẽ bị xóa. Bạn có muốn tiếp tục?")) {
+                actionToRun();
             }
         } else {
-            action();
+            actionToRun();
         }
     }
 
-    btnNewGame.addEventListener("click", () => {
-        initAudio();
-        showConfirmOrRun(() => {
+    Buttons.newGame.addEventListener("click", () => {
+        initializeAudioSystem();
+        showWarningBeforeExecute(() => {
             localStorage.removeItem("BRICK_BREAKER_SAVE");
-            checkSavedGame();
-            homeActions.classList.add("d-none");
-            homeActions.classList.remove("d-flex");
-            levelSelectArea.classList.remove("d-none");
-            levelSelectArea.classList.add("d-flex");
+            updateContinueButtonState();
+            InterfaceElements.homeActions.classList.add("d-none");
+            InterfaceElements.homeActions.classList.remove("d-flex");
+            InterfaceElements.levelSelectArea.classList.remove("d-none");
+            InterfaceElements.levelSelectArea.classList.add("d-flex");
         });
     });
 
-    btnBackToHome.addEventListener("click", () => {
-        levelSelectArea.classList.add("d-none");
-        levelSelectArea.classList.remove("d-flex");
-        homeActions.classList.remove("d-none");
-        homeActions.classList.add("d-flex");
+    Buttons.backToHome.addEventListener("click", () => {
+        InterfaceElements.levelSelectArea.classList.add("d-none");
+        InterfaceElements.levelSelectArea.classList.remove("d-flex");
+        InterfaceElements.homeActions.classList.remove("d-none");
+        InterfaceElements.homeActions.classList.add("d-flex");
     });
 
-    document.querySelectorAll('.btn-level').forEach(btn => {
-        btn.addEventListener("click", (e) => {
-            const level = parseInt(e.currentTarget.getAttribute("data-level"));
-            loadLevelFromMenu(level);
+    document.querySelectorAll('.btn-level').forEach(buttonNode => {
+        buttonNode.addEventListener("click", (event) => {
+            const levelValue = parseInt(event.currentTarget.getAttribute("data-level"));
+            loadSelectedLevelToScreen(levelValue);
         });
     });
 
-    btnStartGameplay.addEventListener("click", () => {
-        tutorialOverlay.classList.add("d-none");
-        tutorialOverlay.classList.remove("d-flex");
-        isPlaying = true;
-        resetBallOnPaddle();
-        gameLoop();
+    Buttons.startGameplay.addEventListener("click", () => {
+        InterfaceElements.tutorialOverlay.classList.add("d-none");
+        InterfaceElements.tutorialOverlay.classList.remove("d-flex");
+        GameState.isGameRunning = true;
+        resetBallsToPaddle();
+        processMainGameLoop();
     });
 
-    btnContinue.addEventListener("click", () => {
-        initAudio();
-        const raw = localStorage.getItem("BRICK_BREAKER_SAVE");
-        if (!raw) return;
-        const data = JSON.parse(raw);
+    Buttons.continueGame.addEventListener("click", () => {
+        initializeAudioSystem();
+        const rawSavedString = localStorage.getItem("BRICK_BREAKER_SAVE");
+        if (!rawSavedString) {
+            return;
+        }
 
-        currentLevel = data.level || 1;
-        if (hudLevel) hudLevel.textContent = currentLevel;
+        const parsedData = JSON.parse(rawSavedString);
+        GameState.currentLevel = parsedData.level || 1;
+        if (InterfaceElements.levelDisplay) {
+            InterfaceElements.levelDisplay.textContent = GameState.currentLevel;
+        }
 
-        expandGameScreen();
-        score = data.score;
-        lives = data.lives;
-        paddle.x = data.paddle.x;
-        paddle.y = data.paddle.y;
-        balls = data.balls || [createInitialBall()];
-        isBallLaunched = data.isBallLaunched;
-        bricks = data.bricks;
+        expandGameplayContainer();
+        GameState.currentScore = parsedData.score;
+        GameState.currentLives = parsedData.lives;
+        GameState.paddle.positionX = parsedData.paddleX;
+        GameState.isBallLaunched = parsedData.isLaunched;
 
-        bricksToBreak = 0;
-        for (let c = 0; c < brickColumnCount; c++) {
-            for (let r = 0; r < brickRowCount; r++) {
-                if (bricks[c][r].status === 1) bricksToBreak++;
+        clearEntirePlayArea();
+        setupPaddleElement();
+        setupShieldElement();
+        GameState.activeBalls = [];
+        GameState.fallingItems = [];
+        GameState.shield.isActive = false;
+        GameState.paddle.hasFireballBuff = false;
+        GameState.paddle.width = 120;
+
+        parsedData.savedBalls.forEach(savedBall => {
+            const recreatedBall = generateNewBallObject(savedBall.posX, savedBall.posY);
+            recreatedBall.velocityX = savedBall.velX;
+            recreatedBall.velocityY = savedBall.velY;
+            recreatedBall.currentSpeed = savedBall.speed;
+            recreatedBall.isFireball = savedBall.isRed;
+            setupBallElement(recreatedBall);
+            GameState.activeBalls.push(recreatedBall);
+        });
+
+        GameState.activeBricks = [];
+        GameState.totalBricksToBreak = 0;
+        for (let col = 0; col < LevelConfig.columnCount; col++) {
+            GameState.activeBricks[col] = [];
+            for (let row = 0; row < LevelConfig.rowCount; row++) {
+                const brickStatus = parsedData.brickMatrix[col][row];
+                let createdBrickElement = null;
+
+                const calculatedX = col * (LevelConfig.brickWidth + LevelConfig.brickPadding) + LevelConfig.offsetLeft;
+                const calculatedY = row * (LevelConfig.brickHeight + LevelConfig.brickPadding) + LevelConfig.offsetTop;
+
+                if (brickStatus === 1) {
+                    createdBrickElement = createHtmlElement("div", {
+                        width: LevelConfig.brickWidth + "px",
+                        height: LevelConfig.brickHeight + "px",
+                        backgroundColor: LevelConfig.colors[row % LevelConfig.colors.length],
+                        border: "1px solid rgba(0,0,0,0.3)",
+                        left: calculatedX + "px",
+                        top: calculatedY + "px",
+                        boxSizing: "border-box"
+                    });
+                    InterfaceElements.playArea.appendChild(createdBrickElement);
+                    GameState.totalBricksToBreak++;
+                }
+
+                GameState.activeBricks[col][row] = {
+                    element: createdBrickElement,
+                    positionX: calculatedX,
+                    positionY: calculatedY,
+                    isActive: brickStatus === 1
+                };
             }
         }
 
-        hudScore.textContent = score;
-        hudLives.textContent = lives;
+        InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
+        InterfaceElements.livesDisplay.textContent = GameState.currentLives;
 
-        if (!isBallLaunched) {
-            launchHintOverlay.classList.remove("d-none");
-            launchHintOverlay.classList.add("d-flex");
+        if (!GameState.isBallLaunched) {
+            InterfaceElements.launchHintOverlay.classList.remove("d-none");
+            InterfaceElements.launchHintOverlay.classList.add("d-flex");
         }
 
-        renderScene();
-        isPlaying = true;
-        gameLoop();
+        renderGraphicsToScreen();
+        GameState.isGameRunning = true;
+        processMainGameLoop();
     });
 
-    btnGameMenu.addEventListener("click", () => {
-        isPlaying = false;
-        cancelAnimationFrame(animationId);
-        launchHintOverlay.classList.add("d-none");
-        launchHintOverlay.classList.remove("d-flex");
-        pauseOverlay.classList.remove("d-none");
-        pauseOverlay.classList.add("d-flex");
+    Buttons.gameMenu.addEventListener("click", () => {
+        GameState.isGameRunning = false;
+        cancelAnimationFrame(GameState.animationFrameId);
+        InterfaceElements.launchHintOverlay.classList.add("d-none");
+        InterfaceElements.launchHintOverlay.classList.remove("d-flex");
+        InterfaceElements.pauseOverlay.classList.remove("d-none");
+        InterfaceElements.pauseOverlay.classList.add("d-flex");
     });
 
-    btnResumeGame.addEventListener("click", () => {
-        pauseOverlay.classList.add("d-none");
-        pauseOverlay.classList.remove("d-flex");
-        isPlaying = true;
-        if (!isBallLaunched) {
-            launchHintOverlay.classList.remove("d-none");
-            launchHintOverlay.classList.add("d-flex");
+    Buttons.resumeGame.addEventListener("click", () => {
+        InterfaceElements.pauseOverlay.classList.add("d-none");
+        InterfaceElements.pauseOverlay.classList.remove("d-flex");
+        GameState.isGameRunning = true;
+        if (!GameState.isBallLaunched) {
+            InterfaceElements.launchHintOverlay.classList.remove("d-none");
+            InterfaceElements.launchHintOverlay.classList.add("d-flex");
         }
-        gameLoop();
+        processMainGameLoop();
     });
 
-    btnHomeFromPause.addEventListener("click", () => {
-        saveGameProgress();
-        switchToHomeScreen();
+    Buttons.homeFromPause.addEventListener("click", () => {
+        saveCurrentProgressToStorage();
+        switchToHomeMenuScreen();
     });
 
-    btnSelectLevelFromPause.addEventListener("click", () => {
-        showConfirmOrRun(() => {
+    Buttons.selectLevelFromPause.addEventListener("click", () => {
+        showWarningBeforeExecute(() => {
             localStorage.removeItem("BRICK_BREAKER_SAVE");
-            checkSavedGame();
-            switchToHomeScreen();
-            homeActions.classList.add("d-none");
-            homeActions.classList.remove("d-flex");
-            levelSelectArea.classList.remove("d-none");
-            levelSelectArea.classList.add("d-flex");
+            updateContinueButtonState();
+            switchToHomeMenuScreen();
+            InterfaceElements.homeActions.classList.add("d-none");
+            InterfaceElements.homeActions.classList.remove("d-flex");
+            InterfaceElements.levelSelectArea.classList.remove("d-none");
+            InterfaceElements.levelSelectArea.classList.add("d-flex");
         });
     });
 
-    btnExitFromPause.addEventListener("click", () => {
-        saveGameProgress();
-        switchToHomeScreen();
-        const exitModalEl = document.getElementById("exitModal");
-        if (exitModalEl && typeof bootstrap !== "undefined") {
-            new bootstrap.Modal(exitModalEl).show();
+    Buttons.exitFromPause.addEventListener("click", () => {
+        saveCurrentProgressToStorage();
+        switchToHomeMenuScreen();
+        const exitModalNode = document.getElementById("exitModal");
+        if (exitModalNode && typeof bootstrap !== "undefined") {
+            new bootstrap.Modal(exitModalNode).show();
         }
     });
 
-    btnVictoryContinue.addEventListener("click", () => {
-        victoryOverlay.classList.add("d-none");
-        victoryOverlay.classList.remove("d-flex");
+    Buttons.victoryContinue.addEventListener("click", () => {
+        InterfaceElements.victoryOverlay.classList.add("d-none");
+        InterfaceElements.victoryOverlay.classList.remove("d-flex");
 
-        paddle.x = 600 / 2 - paddle.width / 2;
-        initBricks(currentLevel);
-        resetBallOnPaddle();
-        renderScene();
-        isPlaying = true;
-        gameLoop();
+        GameState.paddle.positionX = 240;
+        buildLevelBricks();
+        resetBallsToPaddle();
+        renderGraphicsToScreen();
+        GameState.isGameRunning = true;
+        processMainGameLoop();
     });
 
-    btnVictorySelectLevel.addEventListener("click", () => {
-        switchToHomeScreen();
-        homeActions.classList.add("d-none");
-        homeActions.classList.remove("d-flex");
-        levelSelectArea.classList.remove("d-none");
-        levelSelectArea.classList.add("d-flex");
+    Buttons.victorySelectLevel.addEventListener("click", () => {
+        switchToHomeMenuScreen();
+        InterfaceElements.homeActions.classList.add("d-none");
+        InterfaceElements.homeActions.classList.remove("d-flex");
+        InterfaceElements.levelSelectArea.classList.remove("d-none");
+        InterfaceElements.levelSelectArea.classList.add("d-flex");
     });
 
-    btnVictoryHome.addEventListener("click", () => {
-        switchToHomeScreen();
+    Buttons.victoryHome.addEventListener("click", () => {
+        switchToHomeMenuScreen();
     });
 
-    btnConfirmReset.addEventListener("click", () => {
-        if (confirmResetModalInstance) confirmResetModalInstance.hide();
-        if (resetActionCallback) {
-            resetActionCallback();
-            resetActionCallback = null;
+    Buttons.confirmReset.addEventListener("click", () => {
+        if (modalInstanceForConfirm) modalInstanceForConfirm.hide();
+        if (callbackForReset) {
+            callbackForReset();
+            callbackForReset = null;
         }
     });
 
-    btnConfirmExit.addEventListener("click", () => {
-        saveGameProgress();
+    Buttons.confirmExit.addEventListener("click", () => {
+        saveCurrentProgressToStorage();
         window.close();
-        document.body.innerHTML = `
-      <div class="text-center text-white p-5">
-        <h2 class="text-warning">Cảm ơn bạn đã chơi!</h2>
-        <p>Tiến trình đã được lưu. Bạn có thể đóng tab này.</p>
-      </div>`;
+        document.body.innerHTML = `<div class="text-center text-white p-5"><h2 class="text-warning">Cảm ơn bạn đã chơi!</h2><p>Tiến trình đã được lưu.</p></div>`;
     });
 
-    const sfxSlider = document.getElementById("sfxSlider");
-    if (sfxSlider) {
-        sfxSlider.addEventListener("input", (e) => {
-            sfxVolume = e.target.value / 100;
+    const sfxVolumeSlider = document.getElementById("sfxSlider");
+    if (sfxVolumeSlider) {
+        sfxVolumeSlider.addEventListener("input", (event) => {
+            GameState.soundVolume = event.target.value / 100;
         });
     }
 });
