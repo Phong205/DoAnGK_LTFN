@@ -337,9 +337,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const standardItems = [
             { type: "expand", color: "#2ed573", icon: "↔️" },
-            { type: "life", color: "#ff4757", icon: "❤️" },
+            { type: "life", color: "#ffc547", icon: "❤️" },
             { type: "slow", color: "#1e90ff", icon: "🐢" },
-            { type: "fireball", color: "#ff9f43", icon: "🔥" },
+            { type: "fireball", color: "#ec1c1c", icon: "🔥" },
             { type: "shield", color: "#00d2d3", icon: "🛡️" }
         ];
 
@@ -680,12 +680,39 @@ document.addEventListener("DOMContentLoaded", () => {
             InterfaceElements.levelDisplay.textContent = GameState.currentLevel;
         }
 
-        if (levelNumber === 1) {
-            const titleElement = document.getElementById("tutorialTitle");
-            const descriptionElement = document.getElementById("tutorialDesc");
-            if (titleElement) titleElement.textContent = "MÀN 1: CƠ BẢN";
-            if (descriptionElement) descriptionElement.innerHTML = "👉 Khối gạch vỡ sau 1 chạm.<br>🕹️ Điều khiển: Chuột hoặc phím mũi tên.<br>🖱️ Khởi động: Nhấn chuột trái.";
-        }
+        const tutorialData = {
+            1: {
+                title: "MÀN 1: GẠCH CƠ BẢN",
+                desc: "👉 Khối gạch vỡ sau 1 chạm.<br>🕹️ Điều khiển: Chuột hoặc phím mũi tên.<br>🖱️ Khởi động: Nhấn chuột trái."
+            },
+            2: {
+                title: "MÀN 2: GẠCH NHIỀU MÁU",
+                desc: "👉 Có những khối gạch cứng cần đập nhiều lần mới vỡ.<br>⚠️ Hãy chú ý màu sắc để biết độ bền của gạch."
+            },
+            3: {
+                title: "MÀN 3: GẠCH THANH CHẮN",
+                desc: "👉 Xuất hiện các thanh chắn kim loại vĩnh cửu không thể bị phá vỡ.<br>⚠️ Bạn phải khéo léo lách bóng qua các khe hở."
+            },
+            4: {
+                title: "MÀN 4: GẠCH BỊ ẨN",
+                desc: "👉 Một số khối gạch tàng hình và chỉ lộ diện khi bóng chạm vào các khối chỉ định.<br>⚠️️ Hãy cố đưa bóng chạm vào các khối chỉ định để hiện các khối bị ẩn."
+            },
+            5: {
+                title: "MÀN 5: GẠCH HỒI PHỤC",
+                desc: "👉 Gạch có khả năng tự mọc lại sau một khoảng thời gian.<br>⚠️ Tốc độ dọn dẹp là chìa khóa để vượt qua màn này."
+            },
+            6: {
+                title: "MÀN 6: GẠCH BOSS",
+                desc: "👉 Đối đầu với trùm cuối. Khối gạch khổng lồ có lượng máu lớn và có các khối gạch bao xung quanh với cơ chế phòng thủ đặc biệt.<br>⚠️️ Hãy tận dụng tối đa các vật phẩm rơi ra! Phá các khối xung quanh, tiêu diệt boss và dành chiến thắng"
+            }
+        };
+
+        const activeTutorial = tutorialData[levelNumber] || tutorialData[1];
+        const titleElement = document.getElementById("tutorialTitle");
+        const descriptionElement = document.getElementById("tutorialDesc");
+
+        if (titleElement) titleElement.textContent = activeTutorial.title;
+        if (descriptionElement) descriptionElement.innerHTML = activeTutorial.desc;
 
         GameState.paddle.positionX = 240;
         buildLevelBricks();
