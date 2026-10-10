@@ -42,13 +42,14 @@
 
         <div id="tutorialOverlay" class="game-overlay d-none flex-column align-items-center justify-content-center p-3">
             <div class="tutorial-card bg-dark border border-warning rounded p-4 text-center shadow-lg">
-                <h3 class="text-warning fw-bold mb-3">MÀN 1: GẠCH CƠ BẢN</h3>
-                <div class="text-start text-light mb-4">
+                <h3 id="tutorialTitle" class="text-warning fw-bold mb-3">MÀN 1: GẠCH CƠ BẢN</h3>
+                <div id="tutorialDesc" class="text-start text-light mb-4">
                     <p class="mb-2">👉 <strong>Cơ chế:</strong> Toàn bộ các khối gạch vỡ sau 1 chạm.</p>
                     <p class="mb-2">🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc dùng phím mũi tên <strong>Trái
                         / Phải</strong> (hoặc <strong>A / D</strong>).</p>
                     <p class="mb-0">🖱️ <strong>Khởi động:</strong> Nhấn chuột trái để phóng bóng bắt đầu chơi.</p>
                 </div>
+
                 <button id="btnStartGameplay" class="btn btn-warning btn-lg fw-bold px-5">Tiếp tục ➔</button>
             </div>
         </div>
@@ -66,7 +67,7 @@
         <div id="victoryOverlay" class="game-overlay d-none flex-column align-items-center justify-content-center p-3">
             <div class="tutorial-card bg-dark border border-success rounded p-4 text-center shadow-lg">
                 <h2 class="text-success fw-bold display-6 mb-2">🎉 BẠN THẮNG! 🎉</h2>
-                <p class="text-light mb-4">Chúc mừng bạn đã dọn sạch toàn bộ các khối gạch Màn 1.</p>
+                <p class="text-light mb-4">Chúc mừng bạn đã dọn sạch toàn bộ các khối gạch.</p>
                 <div class="d-flex flex-column gap-2">
                     <button id="btnVictoryContinue" class="btn btn-success btn-lg fw-bold">Tiếp tục</button>
                     <button id="btnVictorySelectLevel" class="btn btn-outline-light">Chọn màn</button>
