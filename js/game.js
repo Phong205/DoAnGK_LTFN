@@ -196,6 +196,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 let brickHp = 1;
                 let brickColor = LevelConfig.colors[row % LevelConfig.colors.length];
+                let isUnbreakable = false;
 
                 if (GameState.currentLevel === 2) {
                     const Level2Colors = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
@@ -207,6 +208,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     brickColor = Level2Colors[brickHp];
                 }
+                else if (GameState.currentLevel === 3) {
+                    if (row === 4 || row === 8) {
+                        // Khe hở ở cột 2, 7, 12
+                        if (col !== 2 && col !== 7 && col !== 12) {
+                            isUnbreakable = true;
+                            brickHp = -1;
+                            brickColor = "#7f8c8d";
+                        }
+                    }
+                }
 
                 const calculatedX = col * (LevelConfig.brickWidth + LevelConfig.brickPadding) + LevelConfig.offsetLeft;
                 const calculatedY = row * (LevelConfig.brickHeight + LevelConfig.brickPadding) + LevelConfig.offsetTop;
@@ -215,7 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     width: LevelConfig.brickWidth + "px",
                     height: LevelConfig.brickHeight + "px",
                     backgroundColor: brickColor,
-                    border: "1px solid rgba(0,0,0,0.3)",
+                    border: isUnbreakable ? "2px solid #2c3e50" : "1px solid rgba(0,0,0,0.3)",
                     left: calculatedX + "px",
                     top: calculatedY + "px",
                     boxSizing: "border-box"
@@ -229,9 +240,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     positionY: calculatedY,
                     isActive: true,
                     hp: brickHp,
-                    hitCooldown: 0
+                    hitCooldown: 0,
+                    isUnbreakable: isUnbreakable
                 };
-                GameState.totalBricksToBreak++;
+
+                if (!isUnbreakable) {
+                    GameState.totalBricksToBreak++;
+                }
             }
         }
     }
@@ -438,7 +453,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-        // 2. Xét va chạm cho từng quả bóng
         GameState.activeBalls.forEach(ball => {
             let hasBouncedThisFrame = false;
 
@@ -451,7 +465,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         const isOverlappingY = ball.positionY + ball.radius > brick.positionY && ball.positionY - ball.radius < brick.positionY + LevelConfig.brickHeight;
 
                         if (isOverlappingX && isOverlappingY) {
-                            if (!ball.isFireball && !hasBouncedThisFrame) {
+                            if ((!ball.isFireball || brick.isUnbreakable) && !hasBouncedThisFrame) {
+
                                 const overlapLeft = (ball.positionX + ball.radius) - brick.positionX;
                                 const overlapRight = (brick.positionX + LevelConfig.brickWidth) - (ball.positionX - ball.radius);
                                 const overlapTop = (ball.positionY + ball.radius) - brick.positionY;
@@ -841,6 +856,48 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    function processBrickHit(brickObject) {
+        if (brickObject.isUnbreakable) {
+            playCollisionSound();
+            return;
+        }
+
+        brickObject.hp--;
+        brickObject.hitCooldown = 15;
+
+        if (brickObject.hp > 0) {
+            if (GameState.currentLevel === 2) {
+                const Level2Colors = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
+                brickObject.element.style.backgroundColor = Level2Colors[brickObject.hp];
+            }
+            GameState.currentScore += 5;
+            InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
+            playCollisionSound();
+        } else {
+            brickObject.isActive = false;
+            brickObject.element.remove();
+
+            GameState.currentScore += 10;
+            InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
+            GameState.totalBricksToBreak--;
+
+            playCollisionSound();
+            spawnRandomItem(brickObject.positionX + LevelConfig.brickWidth / 2, brickObject.positionY + LevelConfig.brickHeight / 2);
+
+            if (GameState.totalBricksToBreak === 0) {
+                GameState.isGameRunning = false;
+                cancelAnimationFrame(GameState.animationFrameId);
+                localStorage.removeItem("BRICK_BREAKER_SAVE");
+                updateContinueButtonState();
+
+                InterfaceElements.launchHintOverlay.classList.add("d-none");
+                InterfaceElements.launchHintOverlay.classList.remove("d-flex");
+                InterfaceElements.victoryOverlay.classList.remove("d-none");
+                InterfaceElements.victoryOverlay.classList.add("d-flex");
+            }
+        }
+    }
+
     Buttons.newGame.addEventListener("click", () => {
         initializeAudioSystem();
         showWarningBeforeExecute(() => {
@@ -917,44 +974,53 @@ document.addEventListener("DOMContentLoaded", () => {
         GameState.totalBricksToBreak = 0;
         for (let col = 0; col < LevelConfig.columnCount; col++) {
             GameState.activeBricks[col] = [];
-                for (let row = 0; row < LevelConfig.rowCount; row++) {
-                    const brickStatus = parsedData.brickMatrix[col][row];
-                    let createdBrickElement = null;
+            for (let row = 0; row < LevelConfig.rowCount; row++) {
+                const brickStatus = parsedData.brickMatrix[col][row];
+                let createdBrickElement = null;
 
-                    const calculatedX = col * (LevelConfig.brickWidth + LevelConfig.brickPadding) + LevelConfig.offsetLeft;
-                    const calculatedY = row * (LevelConfig.brickHeight + LevelConfig.brickPadding) + LevelConfig.offsetTop;
+                const calculatedX = col * (LevelConfig.brickWidth + LevelConfig.brickPadding) + LevelConfig.offsetLeft;
+                const calculatedY = row * (LevelConfig.brickHeight + LevelConfig.brickPadding) + LevelConfig.offsetTop;
 
-                    if (brickStatus > 0) {
-                        let brickColor = LevelConfig.colors[row % LevelConfig.colors.length];
-                        if (GameState.currentLevel === 2) {
-                            const Level2Colors = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
-                            brickColor = Level2Colors[brickStatus] || "#1e90ff";
-                        }
+                // Nếu brickStatus !== 0 (Tức là > 0 với gạch thường, và = -1 với gạch kim loại)
+                if (brickStatus !== 0) {
+                    let brickColor = LevelConfig.colors[row % LevelConfig.colors.length];
+                    let isUnbreakable = false;
 
-                        createdBrickElement = createHtmlElement("div", {
-                            width: LevelConfig.brickWidth + "px",
-                            height: LevelConfig.brickHeight + "px",
-                            backgroundColor: brickColor,
-                            border: "1px solid rgba(0,0,0,0.3)",
-                            left: calculatedX + "px",
-                            top: calculatedY + "px",
-                            boxSizing: "border-box"
-                        });
-                        InterfaceElements.playArea.appendChild(createdBrickElement);
-                        GameState.totalBricksToBreak++;
+                    if (brickStatus === -1) {
+                        isUnbreakable = true;
+                        brickColor = "#7f8c8d";
+                    } else if (GameState.currentLevel === 2) {
+                        const Level2Colors = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
+                        brickColor = Level2Colors[brickStatus] || "#1e90ff";
                     }
 
-                    GameState.activeBricks[col][row] = {
-                        element: createdBrickElement,
-                        positionX: calculatedX,
-                        positionY: calculatedY,
-                        isActive: brickStatus > 0,
-                        hp: brickStatus,
-                        hitCooldown: 0
-                    };
-                }
-            }
+                    createdBrickElement = createHtmlElement("div", {
+                        width: LevelConfig.brickWidth + "px",
+                        height: LevelConfig.brickHeight + "px",
+                        backgroundColor: brickColor,
+                        border: isUnbreakable ? "2px solid #2c3e50" : "1px solid rgba(0,0,0,0.3)",
+                        left: calculatedX + "px",
+                        top: calculatedY + "px",
+                        boxSizing: "border-box"
+                    });
+                    InterfaceElements.playArea.appendChild(createdBrickElement);
 
+                    if (!isUnbreakable) {
+                        GameState.totalBricksToBreak++;
+                    }
+                }
+
+                GameState.activeBricks[col][row] = {
+                    element: createdBrickElement,
+                    positionX: calculatedX,
+                    positionY: calculatedY,
+                    isActive: brickStatus !== 0,
+                    hp: brickStatus,
+                    hitCooldown: 0,
+                    isUnbreakable: brickStatus === -1
+                };
+            }
+        }
         InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
         InterfaceElements.livesDisplay.textContent = GameState.currentLives;
 
