@@ -194,7 +194,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 let brickColor = LevelConfig.colors[row % LevelConfig.colors.length];
                 let isUnbreakable = false;
 
-                if (GameState.currentLevel === 2) {
+                if (GameState.currentLevel === 1) {
+                    brickColor = "#00f2fe";
+                } else if (GameState.currentLevel === 2) {
                     const Level2Colors = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
                     if (row < 2) brickHp = 5;
                     else if (row < 4) brickHp = 4;
@@ -920,6 +922,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (brickStatus === -1) {
                         isUnbreakable = true;
                         brickColor = "#7f8c8d";
+                    } else if (GameState.currentLevel === 1) {
+                        brickColor = "#00f2fe";
                     } else if (GameState.currentLevel === 2) {
                         const Level2Colors = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
                         brickColor = Level2Colors[brickStatus] || "#1e90ff";
