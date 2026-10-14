@@ -95,9 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function playCollisionSound() {
-        if (!GameState.audioContext || GameState.soundVolume <= 0) {
-            return;
-        }
+        if (!GameState.audioContext || GameState.soundVolume <= 0) return;
         try {
             const oscillator = GameState.audioContext.createOscillator();
             const gainNode = GameState.audioContext.createGain();
@@ -114,8 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             oscillator.start();
             oscillator.stop(GameState.audioContext.currentTime + 0.05);
-        } catch (error) {
-        }
+        } catch (error) {}
     }
 
     function createHtmlElement(tagName, styles) {
@@ -193,7 +190,6 @@ document.addEventListener("DOMContentLoaded", () => {
         for (let col = 0; col < LevelConfig.columnCount; col++) {
             GameState.activeBricks[col] = [];
             for (let row = 0; row < LevelConfig.rowCount; row++) {
-
                 let brickHp = 1;
                 let brickColor = LevelConfig.colors[row % LevelConfig.colors.length];
                 let isUnbreakable = false;
@@ -205,12 +201,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     else if (row < 7) brickHp = 3;
                     else if (row < 9) brickHp = 2;
                     else brickHp = 1;
-
                     brickColor = Level2Colors[brickHp];
-                }
-                else if (GameState.currentLevel === 3) {
+                } else if (GameState.currentLevel === 3) {
                     if (row === 4 || row === 8) {
-                        // Khe hở ở cột 2, 7, 12
                         if (col !== 2 && col !== 7 && col !== 12) {
                             isUnbreakable = true;
                             brickHp = -1;
@@ -273,9 +266,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function launchAllBalls() {
-        if (!GameState.isGameRunning || GameState.isBallLaunched) {
-            return;
-        }
+        if (!GameState.isGameRunning || GameState.isBallLaunched) return;
+
         GameState.isBallLaunched = true;
         InterfaceElements.launchHintOverlay.classList.add("d-none");
         InterfaceElements.launchHintOverlay.classList.remove("d-flex");
@@ -323,27 +315,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     document.addEventListener("keydown", (event) => {
-        if (event.key === "Right" || event.key === "ArrowRight" || event.key === "d" || event.key === "D") {
-            GameState.controls.moveRight = true;
-        }
-        if (event.key === "Left" || event.key === "ArrowLeft" || event.key === "a" || event.key === "A") {
-            GameState.controls.moveLeft = true;
-        }
+        if (["Right", "ArrowRight", "d", "D"].includes(event.key)) GameState.controls.moveRight = true;
+        if (["Left", "ArrowLeft", "a", "A"].includes(event.key)) GameState.controls.moveLeft = true;
     });
 
     document.addEventListener("keyup", (event) => {
-        if (event.key === "Right" || event.key === "ArrowRight" || event.key === "d" || event.key === "D") {
-            GameState.controls.moveRight = false;
-        }
-        if (event.key === "Left" || event.key === "ArrowLeft" || event.key === "a" || event.key === "A") {
-            GameState.controls.moveLeft = false;
-        }
+        if (["Right", "ArrowRight", "d", "D"].includes(event.key)) GameState.controls.moveRight = false;
+        if (["Left", "ArrowLeft", "a", "A"].includes(event.key)) GameState.controls.moveLeft = false;
     });
 
     InterfaceElements.playArea.addEventListener("mousemove", (event) => {
-        if (!GameState.isGameRunning) {
-            return;
-        }
+        if (!GameState.isGameRunning) return;
         const bounds = InterfaceElements.playArea.getBoundingClientRect();
         const relativeMouseX = (event.clientX - bounds.left) * (600 / bounds.width);
 
@@ -357,14 +339,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    InterfaceElements.playArea.addEventListener("click", () => {
-        launchAllBalls();
-    });
+    InterfaceElements.playArea.addEventListener("click", launchAllBalls);
 
     function spawnRandomItem(spawnX, spawnY) {
-        if (Math.random() >= 0.25) {
-            return;
-        }
+        if (Math.random() >= 0.25) return;
 
         const standardItems = [
             { type: "expand", color: "#2ed573", icon: "↔️" },
@@ -407,6 +385,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function processBrickHit(brickObject) {
+        if (brickObject.isUnbreakable) {
+            playCollisionSound();
+            brickObject.hitCooldown = 15;
+            return;
+        }
+
         brickObject.hp--;
         brickObject.hitCooldown = 15;
 
@@ -465,8 +449,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         const isOverlappingY = ball.positionY + ball.radius > brick.positionY && ball.positionY - ball.radius < brick.positionY + LevelConfig.brickHeight;
 
                         if (isOverlappingX && isOverlappingY) {
-                            if ((!ball.isFireball || brick.isUnbreakable) && !hasBouncedThisFrame) {
-
+                            if (!ball.isFireball && !hasBouncedThisFrame) {
                                 const overlapLeft = (ball.positionX + ball.radius) - brick.positionX;
                                 const overlapRight = (brick.positionX + LevelConfig.brickWidth) - (ball.positionX - ball.radius);
                                 const overlapTop = (ball.positionY + ball.radius) - brick.positionY;
@@ -483,7 +466,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                                 hasBouncedThisFrame = true;
                             }
-
                             processBrickHit(brick);
                         }
                     }
@@ -577,9 +559,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function processMainGameLoop() {
-        if (!GameState.isGameRunning) {
-            return;
-        }
+        if (!GameState.isGameRunning) return;
 
         if (GameState.shield.isActive) {
             GameState.shield.remainingTime--;
@@ -700,7 +680,6 @@ document.addEventListener("DOMContentLoaded", () => {
         InterfaceElements.levelSelectArea.classList.remove("d-flex");
         InterfaceElements.homeOverlay.classList.add("d-none");
         InterfaceElements.homeOverlay.classList.remove("d-flex");
-
         InterfaceElements.screenWrapper.classList.add("playing-size");
         InterfaceElements.gameHud.classList.remove("d-none");
         InterfaceElements.gameHud.classList.add("d-flex");
@@ -713,7 +692,6 @@ document.addEventListener("DOMContentLoaded", () => {
         InterfaceElements.screenWrapper.classList.remove("playing-size");
         InterfaceElements.gameHud.classList.add("d-none");
         InterfaceElements.gameHud.classList.remove("d-flex");
-
         InterfaceElements.launchHintOverlay.classList.add("d-none");
         InterfaceElements.launchHintOverlay.classList.remove("d-flex");
         InterfaceElements.tutorialOverlay.classList.add("d-none");
@@ -722,7 +700,6 @@ document.addEventListener("DOMContentLoaded", () => {
         InterfaceElements.pauseOverlay.classList.remove("d-flex");
         InterfaceElements.victoryOverlay.classList.add("d-none");
         InterfaceElements.victoryOverlay.classList.remove("d-flex");
-
         InterfaceElements.mainHeader.classList.remove("d-none");
         InterfaceElements.homeActions.classList.remove("d-none");
         InterfaceElements.homeActions.classList.add("d-flex");
@@ -740,7 +717,6 @@ document.addEventListener("DOMContentLoaded", () => {
         GameState.currentLevel = levelNumber;
         GameState.currentScore = 0;
         GameState.currentLives = 3;
-
         InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
         InterfaceElements.livesDisplay.textContent = GameState.currentLives;
 
@@ -763,7 +739,7 @@ document.addEventListener("DOMContentLoaded", () => {
             },
             4: {
                 title: "MÀN 4: GẠCH BỊ ẨN",
-                desc: "👉 Một số khối gạch tàng hình và chỉ lộ diện khi bóng chạm vào các khối chỉ định.<br>⚠️️ Hãy cố đưa bóng chạm vào các khối chỉ định để hiện các khối bị ẩn."
+                desc: "👉 Một số khối gạch tàng hình và chỉ lộ diện khi bóng chạm vào các khối chỉ định.<br>⚠ Hãy cố đưa bóng chạm vào các khối chỉ định để hiện các khối bị ẩn."
             },
             5: {
                 title: "MÀN 5: GẠCH HỒI PHỤC",
@@ -771,7 +747,7 @@ document.addEventListener("DOMContentLoaded", () => {
             },
             6: {
                 title: "MÀN 6: GẠCH BOSS",
-                desc: "👉 Đối đầu với trùm cuối. Khối gạch khổng lồ có lượng máu lớn và có các khối gạch bao xung quanh với cơ chế phòng thủ đặc biệt.<br>⚠️️ Hãy tận dụng tối đa các vật phẩm rơi ra! Phá các khối xung quanh, tiêu diệt boss và dành chiến thắng"
+                desc: "👉 Đối đầu với trùm cuối. Khối gạch khổng lồ có lượng máu lớn và có các khối gạch bao xung quanh với cơ chế phòng thủ đặc biệt.<br>⚠ Hãy tận dụng tối đa các vật phẩm rơi ra! Phá các khối xung quanh, tiêu diệt boss và dành chiến thắng"
             }
         };
 
@@ -824,9 +800,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function updateContinueButtonState() {
-        if (!Buttons.continueGame) {
-            return;
-        }
+        if (!Buttons.continueGame) return;
+
         if (localStorage.getItem("BRICK_BREAKER_SAVE")) {
             Buttons.continueGame.removeAttribute("disabled");
         } else {
@@ -853,48 +828,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         } else {
             actionToRun();
-        }
-    }
-
-    function processBrickHit(brickObject) {
-        if (brickObject.isUnbreakable) {
-            playCollisionSound();
-            return;
-        }
-
-        brickObject.hp--;
-        brickObject.hitCooldown = 15;
-
-        if (brickObject.hp > 0) {
-            if (GameState.currentLevel === 2) {
-                const Level2Colors = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
-                brickObject.element.style.backgroundColor = Level2Colors[brickObject.hp];
-            }
-            GameState.currentScore += 5;
-            InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
-            playCollisionSound();
-        } else {
-            brickObject.isActive = false;
-            brickObject.element.remove();
-
-            GameState.currentScore += 10;
-            InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
-            GameState.totalBricksToBreak--;
-
-            playCollisionSound();
-            spawnRandomItem(brickObject.positionX + LevelConfig.brickWidth / 2, brickObject.positionY + LevelConfig.brickHeight / 2);
-
-            if (GameState.totalBricksToBreak === 0) {
-                GameState.isGameRunning = false;
-                cancelAnimationFrame(GameState.animationFrameId);
-                localStorage.removeItem("BRICK_BREAKER_SAVE");
-                updateContinueButtonState();
-
-                InterfaceElements.launchHintOverlay.classList.add("d-none");
-                InterfaceElements.launchHintOverlay.classList.remove("d-flex");
-                InterfaceElements.victoryOverlay.classList.remove("d-none");
-                InterfaceElements.victoryOverlay.classList.add("d-flex");
-            }
         }
     }
 
@@ -935,9 +868,7 @@ document.addEventListener("DOMContentLoaded", () => {
     Buttons.continueGame.addEventListener("click", () => {
         initializeAudioSystem();
         const rawSavedString = localStorage.getItem("BRICK_BREAKER_SAVE");
-        if (!rawSavedString) {
-            return;
-        }
+        if (!rawSavedString) return;
 
         const parsedData = JSON.parse(rawSavedString);
         GameState.currentLevel = parsedData.level || 1;
@@ -972,6 +903,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         GameState.activeBricks = [];
         GameState.totalBricksToBreak = 0;
+
         for (let col = 0; col < LevelConfig.columnCount; col++) {
             GameState.activeBricks[col] = [];
             for (let row = 0; row < LevelConfig.rowCount; row++) {
@@ -981,7 +913,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 const calculatedX = col * (LevelConfig.brickWidth + LevelConfig.brickPadding) + LevelConfig.offsetLeft;
                 const calculatedY = row * (LevelConfig.brickHeight + LevelConfig.brickPadding) + LevelConfig.offsetTop;
 
-                // Nếu brickStatus !== 0 (Tức là > 0 với gạch thường, và = -1 với gạch kim loại)
                 if (brickStatus !== 0) {
                     let brickColor = LevelConfig.colors[row % LevelConfig.colors.length];
                     let isUnbreakable = false;
@@ -1021,6 +952,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 };
             }
         }
+
         InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
         InterfaceElements.livesDisplay.textContent = GameState.currentLives;
 
