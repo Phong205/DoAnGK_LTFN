@@ -193,6 +193,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 let brickHp = 1;
                 let brickColor = LevelConfig.colors[row % LevelConfig.colors.length];
                 let isUnbreakable = false;
+                let isHidden = false;
+                let isTrigger = false;
+                let isActive = true;
 
                 if (GameState.currentLevel === 1) {
                     brickColor = "#00f2fe";
@@ -212,6 +215,21 @@ document.addEventListener("DOMContentLoaded", () => {
                             brickColor = "#7f8c8d";
                         }
                     }
+                } else if (GameState.currentLevel === 4) {
+                    if ((row === 3 && col === 7) || (row === 6 && col === 3) || (row === 6 && col === 11)) {
+                        isTrigger = true;
+                        brickColor = "#ff9f43";
+                    } else if (row >= 2 && row <= 8 && col >= 2 && col <= 12) {
+                        isHidden = true;
+                        brickColor = "#1dd1a1";
+                    } else {
+                        isActive = false;
+                    }
+                }
+
+                if (!isActive) {
+                    GameState.activeBricks[col][row] = { isActive: false };
+                    continue;
                 }
 
                 const calculatedX = col * (LevelConfig.brickWidth + LevelConfig.brickPadding) + LevelConfig.offsetLeft;
@@ -221,11 +239,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     width: LevelConfig.brickWidth + "px",
                     height: LevelConfig.brickHeight + "px",
                     backgroundColor: brickColor,
-                    border: isUnbreakable ? "2px solid #2c3e50" : "1px solid rgba(0,0,0,0.3)",
+                    border: isUnbreakable ? "2px solid #2c3e50" : (isTrigger ? "2px solid #fff" : "1px solid rgba(0,0,0,0.3)"),
                     left: calculatedX + "px",
                     top: calculatedY + "px",
-                    boxSizing: "border-box"
+                    boxSizing: "border-box",
+                    opacity: isHidden ? "0" : "1",
+                    transition: "opacity 0.4s"
                 });
+
+                if (isTrigger) {
+                    brickElement.style.boxShadow = "0 0 12px #ff9f43";
+                }
 
                 InterfaceElements.playArea.appendChild(brickElement);
 
@@ -236,7 +260,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     isActive: true,
                     hp: brickHp,
                     hitCooldown: 0,
-                    isUnbreakable: isUnbreakable
+                    isUnbreakable: isUnbreakable,
+                    isHidden: isHidden,
+                    isTrigger: isTrigger
                 };
 
                 if (!isUnbreakable) {
@@ -393,6 +419,18 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        if (brickObject.isTrigger) {
+            for (let c = 0; c < LevelConfig.columnCount; c++) {
+                for (let r = 0; r < LevelConfig.rowCount; r++) {
+                    const b = GameState.activeBricks[c][r];
+                    if (b && b.isActive && b.isHidden) {
+                        b.isHidden = false;
+                        b.element.style.opacity = "1";
+                    }
+                }
+            }
+        }
+
         brickObject.hp--;
         brickObject.hitCooldown = 15;
 
@@ -446,7 +484,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 for (let row = 0; row < LevelConfig.rowCount; row++) {
                     const brick = GameState.activeBricks[col][row];
 
-                    if (brick && brick.isActive && brick.hitCooldown <= 0) {
+                    if (brick && brick.isActive && brick.hitCooldown <= 0 && !brick.isHidden) {
                         const isOverlappingX = ball.positionX + ball.radius > brick.positionX && ball.positionX - ball.radius < brick.positionX + LevelConfig.brickWidth;
                         const isOverlappingY = ball.positionY + ball.radius > brick.positionY && ball.positionY - ball.radius < brick.positionY + LevelConfig.brickHeight;
 
@@ -777,7 +815,18 @@ document.addEventListener("DOMContentLoaded", () => {
         for (let col = 0; col < LevelConfig.columnCount; col++) {
             brickMatrixForSave[col] = [];
             for (let row = 0; row < LevelConfig.rowCount; row++) {
-                brickMatrixForSave[col][row] = GameState.activeBricks[col][row].isActive ? GameState.activeBricks[col][row].hp : 0;
+                let savedVal = 0;
+                const b = GameState.activeBricks[col][row];
+                if (b && b.isActive) {
+                    if (b.isUnbreakable) {
+                        savedVal = -1;
+                    } else {
+                        savedVal = b.hp;
+                        if (b.isHidden) savedVal += 100;
+                        if (b.isTrigger) savedVal += 200;
+                    }
+                }
+                brickMatrixForSave[col][row] = savedVal;
             }
         }
 
@@ -909,51 +958,76 @@ document.addEventListener("DOMContentLoaded", () => {
         for (let col = 0; col < LevelConfig.columnCount; col++) {
             GameState.activeBricks[col] = [];
             for (let row = 0; row < LevelConfig.rowCount; row++) {
-                const brickStatus = parsedData.brickMatrix[col][row];
-                let createdBrickElement = null;
+                const savedVal = parsedData.brickMatrix[col][row];
 
-                const calculatedX = col * (LevelConfig.brickWidth + LevelConfig.brickPadding) + LevelConfig.offsetLeft;
-                const calculatedY = row * (LevelConfig.brickHeight + LevelConfig.brickPadding) + LevelConfig.offsetTop;
-
-                if (brickStatus !== 0) {
-                    let brickColor = LevelConfig.colors[row % LevelConfig.colors.length];
+                if (savedVal !== 0) {
+                    let actualHp = savedVal;
                     let isUnbreakable = false;
+                    let isHidden = false;
+                    let isTrigger = false;
+                    let brickColor = LevelConfig.colors[row % LevelConfig.colors.length];
 
-                    if (brickStatus === -1) {
+                    if (actualHp === -1) {
                         isUnbreakable = true;
                         brickColor = "#7f8c8d";
-                    } else if (GameState.currentLevel === 1) {
-                        brickColor = "#00f2fe";
-                    } else if (GameState.currentLevel === 2) {
-                        const Level2Colors = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
-                        brickColor = Level2Colors[brickStatus] || "#1e90ff";
+                    } else {
+                        if (actualHp >= 200) {
+                            isTrigger = true;
+                            actualHp -= 200;
+                        }
+                        if (actualHp >= 100) {
+                            isHidden = true;
+                            actualHp -= 100;
+                        }
+
+                        if (GameState.currentLevel === 1) {
+                            brickColor = "#00f2fe";
+                        } else if (GameState.currentLevel === 2) {
+                            const Level2Colors = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
+                            brickColor = Level2Colors[actualHp] || "#1e90ff";
+                        } else if (GameState.currentLevel === 4) {
+                            if (isTrigger) brickColor = "#ff9f43";
+                            else brickColor = "#1dd1a1";
+                        }
                     }
 
-                    createdBrickElement = createHtmlElement("div", {
+                    const calculatedX = col * (LevelConfig.brickWidth + LevelConfig.brickPadding) + LevelConfig.offsetLeft;
+                    const calculatedY = row * (LevelConfig.brickHeight + LevelConfig.brickPadding) + LevelConfig.offsetTop;
+
+                    const brickElement = createHtmlElement("div", {
                         width: LevelConfig.brickWidth + "px",
                         height: LevelConfig.brickHeight + "px",
                         backgroundColor: brickColor,
-                        border: isUnbreakable ? "2px solid #2c3e50" : "1px solid rgba(0,0,0,0.3)",
+                        border: isUnbreakable ? "2px solid #2c3e50" : (isTrigger ? "2px solid #fff" : "1px solid rgba(0,0,0,0.3)"),
                         left: calculatedX + "px",
                         top: calculatedY + "px",
-                        boxSizing: "border-box"
+                        boxSizing: "border-box",
+                        opacity: isHidden ? "0" : "1",
+                        transition: "opacity 0.4s"
                     });
-                    InterfaceElements.playArea.appendChild(createdBrickElement);
+
+                    if (isTrigger) brickElement.style.boxShadow = "0 0 12px #ff9f43";
+
+                    InterfaceElements.playArea.appendChild(brickElement);
 
                     if (!isUnbreakable) {
                         GameState.totalBricksToBreak++;
                     }
-                }
 
-                GameState.activeBricks[col][row] = {
-                    element: createdBrickElement,
-                    positionX: calculatedX,
-                    positionY: calculatedY,
-                    isActive: brickStatus !== 0,
-                    hp: brickStatus,
-                    hitCooldown: 0,
-                    isUnbreakable: brickStatus === -1
-                };
+                    GameState.activeBricks[col][row] = {
+                        element: brickElement,
+                        positionX: calculatedX,
+                        positionY: calculatedY,
+                        isActive: true,
+                        hp: actualHp,
+                        hitCooldown: 0,
+                        isUnbreakable: isUnbreakable,
+                        isHidden: isHidden,
+                        isTrigger: isTrigger
+                    };
+                } else {
+                    GameState.activeBricks[col][row] = { isActive: false };
+                }
             }
         }
 
