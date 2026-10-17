@@ -100,17 +100,13 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const oscillator = GameState.audioContext.createOscillator();
             const gainNode = GameState.audioContext.createGain();
-
             oscillator.type = "sine";
             oscillator.frequency.setValueAtTime(440, GameState.audioContext.currentTime);
             oscillator.frequency.exponentialRampToValueAtTime(880, GameState.audioContext.currentTime + 0.05);
-
             gainNode.gain.setValueAtTime(GameState.soundVolume, GameState.audioContext.currentTime);
             gainNode.gain.linearRampToValueAtTime(0.01, GameState.audioContext.currentTime + 0.05);
-
             oscillator.connect(gainNode);
             gainNode.connect(GameState.audioContext.destination);
-
             oscillator.start();
             oscillator.stop(GameState.audioContext.currentTime + 0.05);
         } catch (error) {}
@@ -198,6 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 let isHidden = false;
                 let isHideable = false;
                 let isTrigger = false;
+                let isHealer = false;
                 let isActive = true;
 
                 if (GameState.currentLevel === 1) {
@@ -230,6 +227,26 @@ document.addEventListener("DOMContentLoaded", () => {
                         brickColor = "#1dd1a1";
                     } else {
                         isActive = false;
+                    }
+                } else if (GameState.currentLevel === 5) {
+                    isActive = false;
+                    const centers = [[3, 3], [3, 11], [8, 7]];
+                    for (let i = 0; i < centers.length; i++) {
+                        const cr = centers[i][0];
+                        const cc = centers[i][1];
+                        const dr = Math.abs(row - cr);
+                        const dc = Math.abs(col - cc);
+
+                        if (dr === 0 && dc === 0) {
+                            isHealer = true;
+                            brickHp = 2;
+                            brickColor = "#e84393";
+                            isActive = true;
+                        } else if (dr <= 1 && dc <= 1) {
+                            brickHp = 2;
+                            brickColor = "#2ed573";
+                            isActive = true;
+                        }
                     }
                 }
 
@@ -270,7 +287,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     isHidden: isHidden,
                     isHideable: isHideable,
                     isTrigger: isTrigger,
-                    isTriggerOn: isTrigger ? true : false
+                    isTriggerOn: isTrigger ? true : false,
+                    isHealer: isHealer,
+                    healTimer: 0
                 };
 
                 if (!isUnbreakable) {
@@ -424,8 +443,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (brickObject.isTrigger) {
             playCollisionSound();
             if (GameState.triggerCooldown > 0) return;
-            GameState.triggerCooldown = 120;
-
+            GameState.triggerCooldown = 60;
             const newState = !brickObject.isTriggerOn;
 
             for (let c = 0; c < LevelConfig.columnCount; c++) {
@@ -462,9 +480,11 @@ document.addEventListener("DOMContentLoaded", () => {
         brickObject.hitCooldown = 15;
 
         if (brickObject.hp > 0) {
-            if (GameState.currentLevel === 2) {
+            if (GameState.currentLevel === 2 || (GameState.currentLevel === 5 && !brickObject.isHealer)) {
                 const Level2Colors = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
-                brickObject.element.style.backgroundColor = Level2Colors[brickObject.hp];
+                brickObject.element.style.backgroundColor = Level2Colors[brickObject.hp] || "#1e90ff";
+            } else if (GameState.currentLevel === 5 && brickObject.isHealer) {
+                brickObject.element.style.backgroundColor = "#fd79a8";
             }
             GameState.currentScore += 5;
             InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
@@ -721,6 +741,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
             checkCollisionBetweenBallsAndBricks();
             updateFallingItemsLogic();
+
+            if (GameState.currentLevel === 5) {
+                for (let c = 0; c < LevelConfig.columnCount; c++) {
+                    for (let r = 0; r < LevelConfig.rowCount; r++) {
+                        const core = GameState.activeBricks[c][r];
+                        if (core && core.isActive && core.isHealer) {
+                            core.healTimer++;
+                            if (core.healTimer >= 1200) {
+                                core.healTimer = 0;
+
+                                for (let dc = -1; dc <= 1; dc++) {
+                                    for (let dr = -1; dr <= 1; dr++) {
+                                        if (dc === 0 && dr === 0) continue;
+                                        const nc = c + dc;
+                                        const nr = r + dr;
+
+                                        if (nc >= 0 && nc < LevelConfig.columnCount && nr >= 0 && nr < LevelConfig.rowCount) {
+                                            const target = GameState.activeBricks[nc][nr];
+                                            if (target && !target.isHealer) {
+                                                if (target.hp < 3) {
+                                                    target.hp++;
+                                                    if (!target.isActive) {
+                                                        target.isActive = true;
+                                                        InterfaceElements.playArea.appendChild(target.element);
+                                                        GameState.totalBricksToBreak++;
+                                                    }
+                                                    const Level2Colors = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
+                                                    target.element.style.backgroundColor = Level2Colors[target.hp] || "#1e90ff";
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         if (GameState.controls.moveRight && GameState.paddle.positionX < 600 - GameState.paddle.width) {
@@ -814,7 +872,7 @@ document.addEventListener("DOMContentLoaded", () => {
             },
             5: {
                 title: "MÀN 5: GẠCH HỒI PHỤC",
-                desc: "👉 Gạch có khả năng tự mọc lại sau một khoảng thời gian.<br>⚠️ Tốc độ dọn dẹp là chìa khóa để vượt qua màn này."
+                desc: "👉 Có 3 quả cầu đặc biệt. Lõi ở giữa sẽ tự động bơm máu cho gạch xung quanh mỗi 20s.<br>⚠️ Bạn phải đập thật nhanh để dọn sạch bản đồ."
             },
             6: {
                 title: "MÀN 6: GẠCH BOSS",
@@ -995,15 +1053,35 @@ document.addEventListener("DOMContentLoaded", () => {
                 const calculatedX = col * (LevelConfig.brickWidth + LevelConfig.brickPadding) + LevelConfig.offsetLeft;
                 const calculatedY = row * (LevelConfig.brickHeight + LevelConfig.brickPadding) + LevelConfig.offsetTop;
 
-                if (sv !== 0) {
-                    let hp = sv;
-                    let isU = false;
-                    let isH = false;
-                    let isHideable = false;
-                    let isT = false;
-                    let isTOn = false;
-                    let c = LevelConfig.colors[row % LevelConfig.colors.length];
+                let hp = sv;
+                let isU = false;
+                let isH = false;
+                let isHideable = false;
+                let isT = false;
+                let isTOn = false;
+                let isHealer = false;
+                let isActive = sv !== 0;
+                let c = LevelConfig.colors[row % LevelConfig.colors.length];
 
+                if (GameState.currentLevel === 5) {
+                    const centers = [[3, 3], [3, 11], [8, 7]];
+                    for (let i = 0; i < centers.length; i++) {
+                        const cr = centers[i][0];
+                        const cc = centers[i][1];
+                        const dr = Math.abs(row - cr);
+                        const dc = Math.abs(col - cc);
+
+                        if (dr === 0 && dc === 0) {
+                            isHealer = true;
+                            c = (hp === 2) ? "#e84393" : "#fd79a8";
+                        } else if (dr <= 1 && dc <= 1) {
+                            const L2 = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
+                            c = L2[hp] || "#1e90ff";
+                        }
+                    }
+                }
+
+                if (sv !== 0) {
                     if (hp === -1) {
                         isU = true;
                         c = "#7f8c8d";
@@ -1028,7 +1106,9 @@ document.addEventListener("DOMContentLoaded", () => {
                             c = "#1dd1a1";
                         }
                     }
+                }
 
+                if (sv !== 0 || isHealer) {
                     createdBrickElement = createHtmlElement("div", {
                         width: LevelConfig.brickWidth + "px",
                         height: LevelConfig.brickHeight + "px",
@@ -1043,26 +1123,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     if (isT && isTOn) createdBrickElement.style.boxShadow = "0 0 12px #ff9f43";
 
-                    InterfaceElements.playArea.appendChild(createdBrickElement);
-
-                    if (!isU) GameState.totalBricksToBreak++;
-
-                    GameState.activeBricks[col][row] = {
-                        element: createdBrickElement,
-                        positionX: calculatedX,
-                        positionY: calculatedY,
-                        isActive: true,
-                        hp: hp,
-                        hitCooldown: 0,
-                        isUnbreakable: isU,
-                        isHidden: isH,
-                        isHideable: isHideable,
-                        isTrigger: isT,
-                        isTriggerOn: isTOn
-                    };
-                } else {
-                    GameState.activeBricks[col][row] = { isActive: false };
+                    if (isActive) {
+                        InterfaceElements.playArea.appendChild(createdBrickElement);
+                        if (!isU) GameState.totalBricksToBreak++;
+                    }
                 }
+
+                GameState.activeBricks[col][row] = {
+                    element: createdBrickElement,
+                    positionX: calculatedX,
+                    positionY: calculatedY,
+                    isActive: isActive,
+                    hp: hp,
+                    hitCooldown: 0,
+                    isUnbreakable: isU,
+                    isHidden: isH,
+                    isHideable: isHideable,
+                    isTrigger: isT,
+                    isTriggerOn: isTOn,
+                    isHealer: isHealer,
+                    healTimer: 0
+                };
             }
         }
 
