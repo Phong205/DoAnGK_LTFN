@@ -230,6 +230,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 } else if (GameState.currentLevel === 5) {
                     isActive = false;
+                    brickHp = 1;
+                    brickColor = "#1e90ff";
+
+                    if (row === 0 || row === 1 || row === 10 || row === 11 || col === 0 || col === 14) {
+                        isActive = true;
+                    }
+
                     const centers = [[3, 3], [3, 11], [8, 7]];
                     for (let i = 0; i < centers.length; i++) {
                         const cr = centers[i][0];
@@ -748,8 +755,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         const core = GameState.activeBricks[c][r];
                         if (core && core.isActive && core.isHealer) {
                             core.healTimer++;
-                            if (core.healTimer >= 1200) {
+                            if (core.healTimer >= 1800) {
                                 core.healTimer = 0;
+
+                                if (core.hp < 2) {
+                                    core.hp++;
+                                    core.element.style.backgroundColor = "#e84393";
+                                }
 
                                 for (let dc = -1; dc <= 1; dc++) {
                                     for (let dr = -1; dr <= 1; dr++) {
@@ -759,14 +771,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
                                         if (nc >= 0 && nc < LevelConfig.columnCount && nr >= 0 && nr < LevelConfig.rowCount) {
                                             const target = GameState.activeBricks[nc][nr];
-                                            if (target && !target.isHealer) {
+                                            if (target && target.isActive && !target.isHealer) {
                                                 if (target.hp < 3) {
                                                     target.hp++;
-                                                    if (!target.isActive) {
-                                                        target.isActive = true;
-                                                        InterfaceElements.playArea.appendChild(target.element);
-                                                        GameState.totalBricksToBreak++;
-                                                    }
                                                     const Level2Colors = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
                                                     target.element.style.backgroundColor = Level2Colors[target.hp] || "#1e90ff";
                                                 }
@@ -872,7 +879,7 @@ document.addEventListener("DOMContentLoaded", () => {
             },
             5: {
                 title: "MÀN 5: GẠCH HỒI PHỤC",
-                desc: "👉 Có 3 quả cầu đặc biệt. Lõi ở giữa sẽ tự động bơm máu cho gạch xung quanh mỗi 20s.<br>⚠️ Bạn phải đập thật nhanh để dọn sạch bản đồ."
+                desc: "👉 Có 3 quả cầu đặc biệt. Lõi ở giữa sẽ bơm máu cho gạch xung quanh mỗi 30s.<br>⚠️ Gạch đã vỡ sẽ không thể mọc lại, hãy ưu tiên tiêu diệt lõi."
             },
             6: {
                 title: "MÀN 6: GẠCH BOSS",
@@ -1063,6 +1070,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 let isActive = sv !== 0;
                 let c = LevelConfig.colors[row % LevelConfig.colors.length];
 
+                if (GameState.currentLevel === 1) {
+                    c = "#00f2fe";
+                } else if (GameState.currentLevel === 2 || GameState.currentLevel === 5) {
+                    const L2 = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
+                    c = L2[hp] || "#1e90ff";
+                } else if (GameState.currentLevel === 4) {
+                    isHideable = true;
+                    c = "#1dd1a1";
+                }
+
                 if (GameState.currentLevel === 5) {
                     const centers = [[3, 3], [3, 11], [8, 7]];
                     for (let i = 0; i < centers.length; i++) {
@@ -1074,9 +1091,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         if (dr === 0 && dc === 0) {
                             isHealer = true;
                             c = (hp === 2) ? "#e84393" : "#fd79a8";
-                        } else if (dr <= 1 && dc <= 1) {
-                            const L2 = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
-                            c = L2[hp] || "#1e90ff";
                         }
                     }
                 }
@@ -1096,19 +1110,8 @@ document.addEventListener("DOMContentLoaded", () => {
                             isH = true;
                             hp -= 100;
                         }
-                        if (GameState.currentLevel === 1) {
-                            c = "#00f2fe";
-                        } else if (GameState.currentLevel === 2) {
-                            const L2 = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
-                            c = L2[hp] || "#1e90ff";
-                        } else if (GameState.currentLevel === 4) {
-                            isHideable = true;
-                            c = "#1dd1a1";
-                        }
                     }
-                }
 
-                if (sv !== 0 || isHealer) {
                     createdBrickElement = createHtmlElement("div", {
                         width: LevelConfig.brickWidth + "px",
                         height: LevelConfig.brickHeight + "px",
