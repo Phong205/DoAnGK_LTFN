@@ -4,7 +4,106 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Brick Breaker</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="assets/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #080c14;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: #f8fafc;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .home-container,
+        .level-select-container,
+        .game-container {
+            width: 100%;
+        }
+
+        .game-title {
+            letter-spacing: 3px;
+            font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+            text-shadow: 0 0 18px rgba(255, 193, 7, 0.45);
+            transition: opacity 0.3s ease;
+        }
+
+        .game-screen-wrapper {
+            position: relative;
+            aspect-ratio: 4 / 5;
+            border: 3px solid #00f2fe;
+            border-radius: 12px;
+            box-shadow: 0 0 25px rgba(0, 242, 254, 0.25), inset 0 0 15px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+            background-color: #020408;
+            height: 48vh;
+            min-height: 340px;
+            max-height: 420px;
+            width: auto;
+            transition: height 0.45s cubic-bezier(0.25, 1, 0.5, 1),
+            max-height 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .game-screen-wrapper.playing-size {
+            height: 78vh;
+            min-height: 580px;
+            max-height: 820px;
+        }
+
+        .game-screen-wrapper canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .game-screen-wrapper .screen-overlay {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.75) 100%);
+            pointer-events: none;
+        }
+
+        .game-screen-wrapper .game-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(4px);
+            z-index: 10;
+        }
+
+        .game-screen-wrapper .tutorial-card {
+            max-width: 440px;
+            width: 90%;
+        }
+
+        .game-hud {
+            width: auto;
+            min-width: 380px;
+            max-width: 600px;
+            transition: opacity 0.3s ease;
+        }
+
+        .menu-actions,
+        .level-grid {
+            width: auto;
+            min-width: 320px;
+            max-width: 460px;
+            transition: opacity 0.3s ease;
+        }
+
+        .menu-actions .btn,
+        .level-grid .btn {
+            border-radius: 8px;
+            padding-top: 0.65rem;
+            padding-bottom: 0.65rem;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .menu-actions .btn:hover:not(:disabled),
+        .level-grid .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 242, 254, 0.3);
+        }
+    </style>
 </head>
 <body class="d-flex align-items-center justify-content-center min-vh-100 p-2">
 
@@ -16,9 +115,12 @@
     </header>
 
     <div id="gameHud" class="game-hud d-none justify-content-center align-items-center gap-2 mb-2">
-        <span class="badge bg-primary px-3 py-2 fs-6">MÀN 1</span>
+        <span id="hudLevel" class="badge bg-primary px-3 py-2 fs-6">MÀN 1</span>
         <span class="badge bg-warning text-dark px-3 py-2 fs-6">ĐIỂM: <span id="hudScore">0</span></span>
         <span class="badge bg-danger px-3 py-2 fs-6">MẠNG: <span id="hudLives">3</span> ❤</span>
+
+        <span id="healerHudBadge" class="badge bg-danger text-white px-3 py-2 fs-6 d-none">⚡ HỒI MỤC: <span id="healerTimerDisplay">60</span>s</span>
+        <span id="bossHudBadge" class="badge bg-danger text-white px-3 py-2 fs-6 d-none">👹 BOSS HP: <span id="bossHpDisplay">30</span>/30</span>
 
         <button id="btnGameMenu" class="badge bg-warning text-dark fw-bold px-3 py-2 fs-6 border-0 shadow-sm" style="cursor: pointer; transition: 0.2s;">
             ☰ MENU
@@ -231,7 +333,7 @@
     </div>
 </div>
 
-<script src="js/bootstrap.bundle.min.js"></script>
-<script src="js/game.js"></script>
+<script src="assets/bootstrap.bundle.min.js"></script>
+<script src="game.js"></script>
 </body>
 </html>

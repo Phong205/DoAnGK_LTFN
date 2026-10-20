@@ -52,6 +52,8 @@ document.addEventListener("DOMContentLoaded", () => {
         activeBalls: [],
         fallingItems: [],
         activeBricks: [],
+        bossProjectiles: [],
+        bossAttackTimer: 0,
         paddle: {
             element: null,
             width: 120,
@@ -179,6 +181,8 @@ document.addEventListener("DOMContentLoaded", () => {
         GameState.activeBricks = [];
         GameState.fallingItems = [];
         GameState.activeBalls = [];
+        GameState.bossProjectiles = [];
+        GameState.bossAttackTimer = 0;
         GameState.totalBricksToBreak = 0;
         GameState.paddle.width = 120;
         GameState.paddle.hasFireballBuff = false;
@@ -195,6 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 let isHideable = false;
                 let isTrigger = false;
                 let isHealer = false;
+                let isBoss = false;
                 let isActive = true;
 
                 if (GameState.currentLevel === 1) {
@@ -249,11 +254,32 @@ document.addEventListener("DOMContentLoaded", () => {
                             brickHp = 2;
                             brickColor = "#e84393";
                             isActive = true;
-                        } else if (dr <= 1 && dc <= 1) {
+                        } else if (dr <= 2 && dc <= 2) {
                             brickHp = 2;
                             brickColor = "#2ed573";
                             isActive = true;
                         }
+                    }
+                } else if (GameState.currentLevel === 6) {
+                    isActive = false;
+                    brickHp = 1;
+                    brickColor = "#1e90ff";
+
+                    if (row === 3 && (col === 6 || col === 8)) {
+                        isUnbreakable = true;
+                        brickHp = -1;
+                        brickColor = "#ff4757";
+                        isActive = true;
+                    } else if (row === 3 && col === 7) {
+                        isBoss = true;
+                        isUnbreakable = false;
+                        brickHp = 30;
+                        brickColor = "#2f3640";
+                        isActive = true;
+                    } else if (row === 0 || row === 1 || col === 0 || col === 14) {
+                        isActive = true;
+                        brickHp = 2;
+                        brickColor = "#9c88ff";
                     }
                 }
 
@@ -265,11 +291,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 const calculatedX = col * (LevelConfig.brickWidth + LevelConfig.brickPadding) + LevelConfig.offsetLeft;
                 const calculatedY = row * (LevelConfig.brickHeight + LevelConfig.brickPadding) + LevelConfig.offsetTop;
 
+                const finalWidth = isBoss ? LevelConfig.brickWidth * 3 : LevelConfig.brickWidth;
+                const finalHeight = isBoss ? LevelConfig.brickHeight * 2 : LevelConfig.brickHeight;
+
                 const brickElement = createHtmlElement("div", {
-                    width: LevelConfig.brickWidth + "px",
-                    height: LevelConfig.brickHeight + "px",
+                    width: finalWidth + "px",
+                    height: finalHeight + "px",
                     backgroundColor: brickColor,
-                    border: isUnbreakable ? (isTrigger ? "2px solid #fff" : "2px solid #2c3e50") : "1px solid rgba(0,0,0,0.3)",
+                    border: isUnbreakable ? "2px solid #2c3e50" : "1px solid rgba(0,0,0,0.3)",
                     left: calculatedX + "px",
                     top: calculatedY + "px",
                     boxSizing: "border-box",
@@ -279,6 +308,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (isTrigger) {
                     brickElement.style.boxShadow = "0 0 12px #ff9f43";
+                } else if (isBoss) {
+                    brickElement.style.boxShadow = "0 0 15px #ff4757";
                 }
 
                 InterfaceElements.playArea.appendChild(brickElement);
@@ -287,6 +318,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     element: brickElement,
                     positionX: calculatedX,
                     positionY: calculatedY,
+                    width: finalWidth,
+                    height: finalHeight,
                     isActive: true,
                     hp: brickHp,
                     hitCooldown: 0,
@@ -296,6 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     isTrigger: isTrigger,
                     isTriggerOn: isTrigger ? true : false,
                     isHealer: isHealer,
+                    isBoss: isBoss,
                     healTimer: 0
                 };
 
@@ -407,16 +441,16 @@ document.addEventListener("DOMContentLoaded", () => {
         if (Math.random() >= 0.25) return;
 
         const standardItems = [
-            { type: "expand", color: "#2ed573", icon: "↔️" },
-            { type: "life", color: "#ffc547", icon: "❤️" },
-            { type: "slow", color: "#1e90ff", icon: "🐢" },
-            { type: "fireball", color: "#ec1c1c", icon: "🔥" },
-            { type: "shield", color: "#00d2d3", icon: "🛡️" }
+            { type: "expand", color: "#ffffff", iconFile: "expand.png" },
+            { type: "life", color: "#ffffff", iconFile: "life.png" },
+            { type: "slow", color: "#ffffff", iconFile: "slow.png" },
+            { type: "fireball", color: "#ffffff", iconFile: "fireball.png" },
+            { type: "shield", color: "#ffffff", iconFile: "shield.png" }
         ];
 
         if (GameState.activeBalls.length <= 2) {
-            standardItems.push({ type: "split", color: "#f368e0", icon: "🔱" });
-            standardItems.push({ type: "shoot", color: "#feca57", icon: "🔫" });
+            standardItems.push({ type: "split", color: "#ffffff", iconFile: "split.png" });
+            standardItems.push({ type: "shoot", color: "#ffffff", iconFile: "shoot.png" });
         }
 
         const pickedItemInfo = standardItems[Math.floor(Math.random() * standardItems.length)];
@@ -426,14 +460,11 @@ document.addEventListener("DOMContentLoaded", () => {
             height: "24px",
             backgroundColor: pickedItemInfo.color,
             borderRadius: "4px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "14px",
-            color: "#ffffff",
+            backgroundImage: `url('assets/icon_Item/${pickedItemInfo.iconFile}')`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
             cursor: "default"
         });
-        itemElement.innerText = pickedItemInfo.icon;
         InterfaceElements.playArea.appendChild(itemElement);
 
         GameState.fallingItems.push({
@@ -492,6 +523,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 brickObject.element.style.backgroundColor = Level2Colors[brickObject.hp] || "#1e90ff";
             } else if (GameState.currentLevel === 5 && brickObject.isHealer) {
                 brickObject.element.style.backgroundColor = "#fd79a8";
+            } else if (GameState.currentLevel === 6 && brickObject.isBoss) {
+                brickObject.element.style.backgroundColor = "#ff4757";
             }
             GameState.currentScore += 5;
             InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
@@ -505,7 +538,7 @@ document.addEventListener("DOMContentLoaded", () => {
             GameState.totalBricksToBreak--;
 
             playCollisionSound();
-            spawnRandomItem(brickObject.positionX + LevelConfig.brickWidth / 2, brickObject.positionY + LevelConfig.brickHeight / 2);
+            spawnRandomItem(brickObject.positionX + (brickObject.width || LevelConfig.brickWidth) / 2, brickObject.positionY + (brickObject.height || LevelConfig.brickHeight) / 2);
 
             if (GameState.totalBricksToBreak === 0) {
                 GameState.isGameRunning = false;
@@ -539,15 +572,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     const brick = GameState.activeBricks[col][row];
 
                     if (brick && brick.isActive && brick.hitCooldown <= 0 && !brick.isHidden) {
-                        const isOverlappingX = ball.positionX + ball.radius > brick.positionX && ball.positionX - ball.radius < brick.positionX + LevelConfig.brickWidth;
-                        const isOverlappingY = ball.positionY + ball.radius > brick.positionY && ball.positionY - ball.radius < brick.positionY + LevelConfig.brickHeight;
+                        const bWidth = brick.width || LevelConfig.brickWidth;
+                        const bHeight = brick.height || LevelConfig.brickHeight;
+
+                        const isOverlappingX = ball.positionX + ball.radius > brick.positionX && ball.positionX - ball.radius < brick.positionX + bWidth;
+                        const isOverlappingY = ball.positionY + ball.radius > brick.positionY && ball.positionY - ball.radius < brick.positionY + bHeight;
 
                         if (isOverlappingX && isOverlappingY) {
                             if ((!ball.isFireball || brick.isUnbreakable) && !hasBouncedThisFrame) {
                                 const overlapLeft = (ball.positionX + ball.radius) - brick.positionX;
-                                const overlapRight = (brick.positionX + LevelConfig.brickWidth) - (ball.positionX - ball.radius);
+                                const overlapRight = (brick.positionX + bWidth) - (ball.positionX - ball.radius);
                                 const overlapTop = (ball.positionY + ball.radius) - brick.positionY;
-                                const overlapBottom = (brick.positionY + LevelConfig.brickHeight) - (ball.positionY - ball.radius);
+                                const overlapBottom = (brick.positionY + bHeight) - (ball.positionY - ball.radius);
 
                                 const minOverlapX = Math.min(overlapLeft, overlapRight);
                                 const minOverlapY = Math.min(overlapTop, overlapBottom);
@@ -685,8 +721,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
 
-                const hitLeftOrRightWall = ball.positionX + ball.velocityX > 600 - ball.radius || ball.positionX + ball.velocityX < ball.radius;
-                if (hitLeftOrRightWall) {
+                if (ball.positionX - ball.radius <= 0) {
+                    ball.positionX = ball.radius;
+                    ball.velocityX = -ball.velocityX;
+                    playCollisionSound();
+                } else if (ball.positionX + ball.radius >= 600) {
+                    ball.positionX = 600 - ball.radius;
                     ball.velocityX = -ball.velocityX;
                     playCollisionSound();
                 }
@@ -750,12 +790,19 @@ document.addEventListener("DOMContentLoaded", () => {
             updateFallingItemsLogic();
 
             if (GameState.currentLevel === 5) {
+                const healerBadge = document.getElementById("healerHudBadge");
+                const timerDisplay = document.getElementById("healerTimerDisplay");
+                if (healerBadge) healerBadge.classList.remove("d-none");
+
                 for (let c = 0; c < LevelConfig.columnCount; c++) {
                     for (let r = 0; r < LevelConfig.rowCount; r++) {
                         const core = GameState.activeBricks[c][r];
                         if (core && core.isActive && core.isHealer) {
                             core.healTimer++;
-                            if (core.healTimer >= 1800) {
+                            const remainingSeconds = Math.ceil((3600 - core.healTimer) / 60);
+                            if (timerDisplay) timerDisplay.textContent = Math.max(0, remainingSeconds);
+
+                            if (core.healTimer >= 3600) {
                                 core.healTimer = 0;
 
                                 if (core.hp < 2) {
@@ -763,8 +810,8 @@ document.addEventListener("DOMContentLoaded", () => {
                                     core.element.style.backgroundColor = "#e84393";
                                 }
 
-                                for (let dc = -1; dc <= 1; dc++) {
-                                    for (let dr = -1; dr <= 1; dr++) {
+                                for (let dc = -2; dc <= 2; dc++) {
+                                    for (let dr = -2; dr <= 2; dr++) {
                                         if (dc === 0 && dr === 0) continue;
                                         const nc = c + dc;
                                         const nr = r + dr;
@@ -785,6 +832,92 @@ document.addEventListener("DOMContentLoaded", () => {
                         }
                     }
                 }
+            } else {
+                const healerBadge = document.getElementById("healerHudBadge");
+                if (healerBadge) healerBadge.classList.add("d-none");
+            }
+
+            if (GameState.currentLevel === 6) {
+                const bossBadge = document.getElementById("bossHudBadge");
+                const bossHpDisplay = document.getElementById("bossHpDisplay");
+                if (bossBadge) bossBadge.classList.remove("d-none");
+
+                let bossX = 300;
+                let bossY = 100;
+                let bossAlive = false;
+
+                for (let c = 0; c < LevelConfig.columnCount; c++) {
+                    for (let r = 0; r < LevelConfig.rowCount; r++) {
+                        const b = GameState.activeBricks[c][r];
+                        if (b && b.isActive && b.isBoss) {
+                            bossAlive = true;
+                            bossX = b.positionX + (b.width || LevelConfig.brickWidth) / 2;
+                            bossY = b.positionY + (b.height || LevelConfig.brickHeight);
+                            if (bossHpDisplay) bossHpDisplay.textContent = b.hp;
+                        }
+                    }
+                }
+
+                if (bossAlive) {
+                    GameState.bossAttackTimer++;
+                    if (GameState.bossAttackTimer >= 300) {
+                        GameState.bossAttackTimer = 0;
+
+                        const bulletEl = createHtmlElement("div", {
+                            width: "8px",
+                            height: "16px",
+                            backgroundColor: "#ff4757",
+                            borderRadius: "4px",
+                            boxShadow: "0 0 8px #ff4757"
+                        });
+                        InterfaceElements.playArea.appendChild(bulletEl);
+
+                        GameState.bossProjectiles.push({
+                            positionX: bossX,
+                            positionY: bossY,
+                            speedY: 2.0,
+                            element: bulletEl
+                        });
+                    }
+                }
+
+                for (let i = GameState.bossProjectiles.length - 1; i >= 0; i--) {
+                    const p = GameState.bossProjectiles[i];
+                    p.positionY += p.speedY;
+                    p.element.style.transform = `translate(${p.positionX - 4}px, ${p.positionY}px)`;
+
+                    const hitPaddleY = p.positionY + 16 >= GameState.paddle.positionY && p.positionY <= GameState.paddle.positionY + GameState.paddle.height;
+                    const hitPaddleX = p.positionX >= GameState.paddle.positionX && p.positionX <= GameState.paddle.positionX + GameState.paddle.width;
+
+                    if (hitPaddleY && hitPaddleX) {
+                        p.element.remove();
+                        GameState.bossProjectiles.splice(i, 1);
+
+                        if (!GameState.shield.isActive) {
+                            GameState.currentLives--;
+                            InterfaceElements.livesDisplay.textContent = GameState.currentLives;
+                            playCollisionSound();
+
+                            if (GameState.currentLives <= 0) {
+                                localStorage.removeItem("BRICK_BREAKER_SAVE");
+                                updateContinueButtonState();
+                                switchToHomeMenuScreen();
+                                return;
+                            }
+                        } else {
+                            GameState.shield.isActive = false;
+                        }
+                    } else if (p.positionY > 750) {
+                        p.element.remove();
+                        GameState.bossProjectiles.splice(i, 1);
+                    }
+                }
+            } else {
+                const bossBadge = document.getElementById("bossHudBadge");
+                if (bossBadge) bossBadge.classList.add("d-none");
+
+                GameState.bossProjectiles.forEach(p => p.element.remove());
+                GameState.bossProjectiles = [];
             }
         }
 
@@ -857,7 +990,7 @@ document.addEventListener("DOMContentLoaded", () => {
         InterfaceElements.livesDisplay.textContent = GameState.currentLives;
 
         if (InterfaceElements.levelDisplay) {
-            InterfaceElements.levelDisplay.textContent = GameState.currentLevel;
+            InterfaceElements.levelDisplay.textContent = `MÀN ${GameState.currentLevel}`;
         }
 
         const tutorialData = {
@@ -879,11 +1012,11 @@ document.addEventListener("DOMContentLoaded", () => {
             },
             5: {
                 title: "MÀN 5: GẠCH HỒI PHỤC",
-                desc: "👉 Có 3 quả cầu đặc biệt. Lõi ở giữa sẽ bơm máu cho gạch xung quanh mỗi 30s.<br>⚠️ Gạch đã vỡ sẽ không thể mọc lại, hãy ưu tiên tiêu diệt lõi."
+                desc: "👉 Có 3 quả cầu đặc biệt. Lõi ở giữa sẽ bơm máu cho gạch xung quanh mỗi 60s.<br>⚠️ Gạch đã vỡ sẽ không thể mọc lại, hãy ưu tiên tiêu diệt lõi."
             },
             6: {
                 title: "MÀN 6: GẠCH BOSS",
-                desc: "👉 Đối đầu với trùm cuối. Khối gạch khổng lồ có lượng máu lớn và có các khối gạch bao xung quanh với cơ chế phòng thủ đặc biệt.<br>⚠ Hãy tận dụng tối đa các vật phẩm rơi ra! Phá các khối xung quanh, tiêu diệt boss và dành chiến thắng"
+                desc: "👉 Đối đầu với trùm cuối. Khối gạch khổng lồ có lượng máu lớn và tự động bắn đạn tấn công.<br>⚠ Hãy né tránh và tiêu diệt trùm!"
             }
         };
 
@@ -1021,7 +1154,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const parsedData = JSON.parse(rawSavedString);
         GameState.currentLevel = parsedData.level || 1;
         if (InterfaceElements.levelDisplay) {
-            InterfaceElements.levelDisplay.textContent = GameState.currentLevel;
+            InterfaceElements.levelDisplay.textContent = `MÀN ${GameState.currentLevel}`;
         }
 
         expandGameplayContainer();
@@ -1035,6 +1168,8 @@ document.addEventListener("DOMContentLoaded", () => {
         setupShieldElement();
         GameState.activeBalls = [];
         GameState.fallingItems = [];
+        GameState.bossProjectiles = [];
+        GameState.bossAttackTimer = 0;
         GameState.shield.isActive = false;
         GameState.paddle.hasFireballBuff = false;
         GameState.paddle.width = 120;
@@ -1067,6 +1202,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 let isT = false;
                 let isTOn = false;
                 let isHealer = false;
+                let isBoss = false;
                 let isActive = sv !== 0;
                 let c = LevelConfig.colors[row % LevelConfig.colors.length];
 
@@ -1078,6 +1214,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 } else if (GameState.currentLevel === 4) {
                     isHideable = true;
                     c = "#1dd1a1";
+                } else if (GameState.currentLevel === 6) {
+                    if (row === 3 && col === 7) {
+                        isBoss = true;
+                        c = "#ff4757";
+                    }
                 }
 
                 if (GameState.currentLevel === 5) {
@@ -1112,9 +1253,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         }
                     }
 
+                    const finalWidth = isBoss ? LevelConfig.brickWidth * 3 : LevelConfig.brickWidth;
+                    const finalHeight = isBoss ? LevelConfig.brickHeight * 2 : LevelConfig.brickHeight;
+
                     createdBrickElement = createHtmlElement("div", {
-                        width: LevelConfig.brickWidth + "px",
-                        height: LevelConfig.brickHeight + "px",
+                        width: finalWidth + "px",
+                        height: finalHeight + "px",
                         backgroundColor: c,
                         border: isU ? (isT ? "2px solid #fff" : "2px solid #2c3e50") : "1px solid rgba(0,0,0,0.3)",
                         left: calculatedX + "px",
@@ -1125,6 +1269,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
 
                     if (isT && isTOn) createdBrickElement.style.boxShadow = "0 0 12px #ff9f43";
+                    if (isBoss) createdBrickElement.style.boxShadow = "0 0 15px #ff4757";
 
                     if (isActive) {
                         InterfaceElements.playArea.appendChild(createdBrickElement);
@@ -1136,6 +1281,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     element: createdBrickElement,
                     positionX: calculatedX,
                     positionY: calculatedY,
+                    width: finalWidth,
+                    height: finalHeight,
                     isActive: isActive,
                     hp: hp,
                     hitCooldown: 0,
@@ -1145,6 +1292,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     isTrigger: isT,
                     isTriggerOn: isTOn,
                     isHealer: isHealer,
+                    isBoss: isBoss,
                     healTimer: 0
                 };
             }
@@ -1212,6 +1360,12 @@ document.addEventListener("DOMContentLoaded", () => {
     Buttons.victoryContinue.addEventListener("click", () => {
         InterfaceElements.victoryOverlay.classList.add("d-none");
         InterfaceElements.victoryOverlay.classList.remove("d-flex");
+
+        // Đã sửa: Tăng số màn lên màn tiếp theo (tối đa màn 6)
+        GameState.currentLevel = Math.min(6, GameState.currentLevel + 1);
+        if (InterfaceElements.levelDisplay) {
+            InterfaceElements.levelDisplay.textContent = `MÀN ${GameState.currentLevel}`;
+        }
 
         GameState.paddle.positionX = 240;
         buildLevelBricks();
