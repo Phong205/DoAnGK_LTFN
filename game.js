@@ -1040,6 +1040,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function saveCurrentProgressToStorage() {
+        if (!GameState.activeBricks || GameState.totalBricksToBreak <= 0) return;
+
         const brickMatrixForSave = [];
         for (let col = 0; col < LevelConfig.columnCount; col++) {
             brickMatrixForSave[col] = [];
@@ -1065,10 +1067,11 @@ document.addEventListener("DOMContentLoaded", () => {
             score: GameState.currentScore,
             lives: GameState.currentLives,
             paddleX: GameState.paddle.positionX,
+            paddleY: 705,
             isLaunched: GameState.isBallLaunched,
             savedBalls: GameState.activeBalls.map(ball => ({
-                posX: ball.positionX,
-                posY: ball.positionY,
+                posX: ball.positionX > 0 ? ball.positionX : GameState.paddle.positionX + 60,
+                posY: ball.posY > 0 ? ball.posY : 690,
                 velX: ball.velocityX,
                 velY: ball.velocityY,
                 speed: ball.currentSpeed,
@@ -1083,10 +1086,17 @@ document.addEventListener("DOMContentLoaded", () => {
     function updateContinueButtonState() {
         if (!Buttons.continueGame) return;
 
-        if (localStorage.getItem("BRICK_BREAKER_SAVE")) {
+        const savedData = localStorage.getItem("BRICK_BREAKER_SAVE");
+        if (savedData && savedData !== "undefined" && savedData !== "null") {
             Buttons.continueGame.removeAttribute("disabled");
+            Buttons.continueGame.classList.remove("disabled");
+            Buttons.continueGame.style.opacity = "1";
+            Buttons.continueGame.style.pointerEvents = "auto";
         } else {
             Buttons.continueGame.setAttribute("disabled", "true");
+            Buttons.continueGame.classList.add("disabled");
+            Buttons.continueGame.style.opacity = "0.5";
+            Buttons.continueGame.style.pointerEvents = "none";
         }
     }
 
@@ -1161,6 +1171,7 @@ document.addEventListener("DOMContentLoaded", () => {
         GameState.currentScore = parsedData.score;
         GameState.currentLives = parsedData.lives;
         GameState.paddle.positionX = parsedData.paddleX;
+        GameState.paddle.positionY = 705;
         GameState.isBallLaunched = parsedData.isLaunched;
 
         clearEntirePlayArea();
@@ -1175,7 +1186,10 @@ document.addEventListener("DOMContentLoaded", () => {
         GameState.paddle.width = 120;
 
         parsedData.savedBalls.forEach(savedBall => {
-            const recreatedBall = generateNewBallObject(savedBall.posX, savedBall.posY);
+            const recreatedBall = generateNewBallObject(
+                savedBall.posX > 0 ? savedBall.posX : GameState.paddle.positionX + 60,
+                savedBall.posY > 0 ? savedBall.posY : 690
+            );
             recreatedBall.velocityX = savedBall.velX;
             recreatedBall.velocityY = savedBall.velY;
             recreatedBall.currentSpeed = savedBall.speed;
@@ -1184,117 +1198,135 @@ document.addEventListener("DOMContentLoaded", () => {
             GameState.activeBalls.push(recreatedBall);
         });
 
-        GameState.activeBricks = [];
-        GameState.totalBricksToBreak = 0;
-
-        for (let col = 0; col < LevelConfig.columnCount; col++) {
-            GameState.activeBricks[col] = [];
-            for (let row = 0; row < LevelConfig.rowCount; row++) {
-                const sv = parsedData.brickMatrix[col][row];
-                let createdBrickElement = null;
-                const calculatedX = col * (LevelConfig.brickWidth + LevelConfig.brickPadding) + LevelConfig.offsetLeft;
-                const calculatedY = row * (LevelConfig.brickHeight + LevelConfig.brickPadding) + LevelConfig.offsetTop;
-
-                let hp = sv;
-                let isU = false;
-                let isH = false;
-                let isHideable = false;
-                let isT = false;
-                let isTOn = false;
-                let isHealer = false;
-                let isBoss = false;
-                let isActive = sv !== 0;
-                let c = LevelConfig.colors[row % LevelConfig.colors.length];
-
-                if (GameState.currentLevel === 1) {
-                    c = "#00f2fe";
-                } else if (GameState.currentLevel === 2 || GameState.currentLevel === 5) {
-                    const L2 = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
-                    c = L2[hp] || "#1e90ff";
-                } else if (GameState.currentLevel === 4) {
-                    isHideable = true;
-                    c = "#1dd1a1";
-                } else if (GameState.currentLevel === 6) {
-                    if (row === 3 && col === 7) {
-                        isBoss = true;
-                        c = "#ff4757";
+        let hasValidBricks = false;
+        if (parsedData.brickMatrix) {
+            for (let c = 0; c < LevelConfig.columnCount; c++) {
+                for (let r = 0; r < LevelConfig.rowCount; r++) {
+                    if (parsedData.brickMatrix[c] && parsedData.brickMatrix[c][r] !== 0) {
+                        hasValidBricks = true;
+                        break;
                     }
                 }
+                if (hasValidBricks) break;
+            }
+        }
 
-                if (GameState.currentLevel === 5) {
-                    const centers = [[3, 3], [3, 11], [8, 7]];
-                    for (let i = 0; i < centers.length; i++) {
-                        const cr = centers[i][0];
-                        const cc = centers[i][1];
-                        const dr = Math.abs(row - cr);
-                        const dc = Math.abs(col - cc);
+        if (!hasValidBricks) {
+            buildLevelBricks();
+            resetBallsToPaddle();
+        } else {
+            GameState.activeBricks = [];
+            GameState.totalBricksToBreak = 0;
 
-                        if (dr === 0 && dc === 0) {
-                            isHealer = true;
-                            c = (hp === 2) ? "#e84393" : "#fd79a8";
-                        }
-                    }
-                }
+            for (let col = 0; col < LevelConfig.columnCount; col++) {
+                GameState.activeBricks[col] = [];
+                for (let row = 0; row < LevelConfig.rowCount; row++) {
+                    const sv = parsedData.brickMatrix[col][row];
+                    let createdBrickElement = null;
+                    const calculatedX = col * (LevelConfig.brickWidth + LevelConfig.brickPadding) + LevelConfig.offsetLeft;
+                    const calculatedY = row * (LevelConfig.brickHeight + LevelConfig.brickPadding) + LevelConfig.offsetTop;
 
-                if (sv !== 0) {
-                    if (hp === -1) {
-                        isU = true;
-                        c = "#7f8c8d";
-                    } else if (hp === -2 || hp === -3) {
-                        isU = true;
-                        isT = true;
-                        isTOn = (hp === -2);
-                        hp = -1;
-                        c = isTOn ? "#ff9f43" : "#d35400";
-                    } else {
-                        if (hp >= 100) {
-                            isH = true;
-                            hp -= 100;
+                    let hp = sv;
+                    let isU = false;
+                    let isH = false;
+                    let isHideable = false;
+                    let isT = false;
+                    let isTOn = false;
+                    let isHealer = false;
+                    let isBoss = false;
+                    let isActive = sv !== 0;
+                    let c = LevelConfig.colors[row % LevelConfig.colors.length];
+
+                    if (GameState.currentLevel === 1) {
+                        c = "#00f2fe";
+                    } else if (GameState.currentLevel === 2 || GameState.currentLevel === 5) {
+                        const L2 = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
+                        c = L2[hp] || "#1e90ff";
+                    } else if (GameState.currentLevel === 4) {
+                        isHideable = true;
+                        c = "#1dd1a1";
+                    } else if (GameState.currentLevel === 6) {
+                        if (row === 3 && col === 7) {
+                            isBoss = true;
+                            c = "#ff4757";
                         }
                     }
 
-                    const finalWidth = isBoss ? LevelConfig.brickWidth * 3 : LevelConfig.brickWidth;
-                    const finalHeight = isBoss ? LevelConfig.brickHeight * 2 : LevelConfig.brickHeight;
+                    if (GameState.currentLevel === 5) {
+                        const centers = [[3, 3], [3, 11], [8, 7]];
+                        for (let i = 0; i < centers.length; i++) {
+                            const cr = centers[i][0];
+                            const cc = centers[i][1];
+                            const dr = Math.abs(row - cr);
+                            const dc = Math.abs(col - cc);
 
-                    createdBrickElement = createHtmlElement("div", {
-                        width: finalWidth + "px",
-                        height: finalHeight + "px",
-                        backgroundColor: c,
-                        border: isU ? (isT ? "2px solid #fff" : "2px solid #2c3e50") : "1px solid rgba(0,0,0,0.3)",
-                        left: calculatedX + "px",
-                        top: calculatedY + "px",
-                        boxSizing: "border-box",
-                        opacity: isH ? "0" : "1",
-                        transition: "opacity 0.4s, box-shadow 0.3s, background-color 0.3s"
-                    });
-
-                    if (isT && isTOn) createdBrickElement.style.boxShadow = "0 0 12px #ff9f43";
-                    if (isBoss) createdBrickElement.style.boxShadow = "0 0 15px #ff4757";
-
-                    if (isActive) {
-                        InterfaceElements.playArea.appendChild(createdBrickElement);
-                        if (!isU) GameState.totalBricksToBreak++;
+                            if (dr === 0 && dc === 0) {
+                                isHealer = true;
+                                c = (hp === 2) ? "#e84393" : "#fd79a8";
+                            }
+                        }
                     }
-                }
 
-                GameState.activeBricks[col][row] = {
-                    element: createdBrickElement,
-                    positionX: calculatedX,
-                    positionY: calculatedY,
-                    width: finalWidth,
-                    height: finalHeight,
-                    isActive: isActive,
-                    hp: hp,
-                    hitCooldown: 0,
-                    isUnbreakable: isU,
-                    isHidden: isH,
-                    isHideable: isHideable,
-                    isTrigger: isT,
-                    isTriggerOn: isTOn,
-                    isHealer: isHealer,
-                    isBoss: isBoss,
-                    healTimer: 0
-                };
+                    if (sv !== 0) {
+                        if (hp === -1) {
+                            isU = true;
+                            c = "#7f8c8d";
+                        } else if (hp === -2 || hp === -3) {
+                            isU = true;
+                            isT = true;
+                            isTOn = (hp === -2);
+                            hp = -1;
+                            c = isTOn ? "#ff9f43" : "#d35400";
+                        } else {
+                            if (hp >= 100) {
+                                isH = true;
+                                hp -= 100;
+                            }
+                        }
+
+                        const finalWidth = isBoss ? LevelConfig.brickWidth * 3 : LevelConfig.brickWidth;
+                        const finalHeight = isBoss ? LevelConfig.brickHeight * 2 : LevelConfig.brickHeight;
+
+                        createdBrickElement = createHtmlElement("div", {
+                            width: finalWidth + "px",
+                            height: finalHeight + "px",
+                            backgroundColor: c,
+                            border: isU ? (isT ? "2px solid #fff" : "2px solid #2c3e50") : "1px solid rgba(0,0,0,0.3)",
+                            left: calculatedX + "px",
+                            top: calculatedY + "px",
+                            boxSizing: "border-box",
+                            opacity: isH ? "0" : "1",
+                            transition: "opacity 0.4s, box-shadow 0.3s, background-color 0.3s"
+                        });
+
+                        if (isT && isTOn) createdBrickElement.style.boxShadow = "0 0 12px #ff9f43";
+                        if (isBoss) createdBrickElement.style.boxShadow = "0 0 15px #ff4757";
+
+                        if (isActive) {
+                            InterfaceElements.playArea.appendChild(createdBrickElement);
+                            if (!isU) GameState.totalBricksToBreak++;
+                        }
+                    }
+
+                    GameState.activeBricks[col][row] = {
+                        element: createdBrickElement,
+                        positionX: calculatedX,
+                        positionY: calculatedY,
+                        width: finalWidth,
+                        height: finalHeight,
+                        isActive: isActive,
+                        hp: hp,
+                        hitCooldown: 0,
+                        isUnbreakable: isU,
+                        isHidden: isH,
+                        isHideable: isHideable,
+                        isTrigger: isT,
+                        isTriggerOn: isTOn,
+                        isHealer: isHealer,
+                        isBoss: isBoss,
+                        healTimer: 0
+                    };
+                }
             }
         }
 
@@ -1351,17 +1383,12 @@ document.addEventListener("DOMContentLoaded", () => {
     Buttons.exitFromPause.addEventListener("click", () => {
         saveCurrentProgressToStorage();
         switchToHomeMenuScreen();
-        const exitModalNode = document.getElementById("exitModal");
-        if (exitModalNode && typeof bootstrap !== "undefined") {
-            new bootstrap.Modal(exitModalNode).show();
-        }
     });
 
     Buttons.victoryContinue.addEventListener("click", () => {
         InterfaceElements.victoryOverlay.classList.add("d-none");
         InterfaceElements.victoryOverlay.classList.remove("d-flex");
 
-        // Đã sửa: Tăng số màn lên màn tiếp theo (tối đa màn 6)
         GameState.currentLevel = Math.min(6, GameState.currentLevel + 1);
         if (InterfaceElements.levelDisplay) {
             InterfaceElements.levelDisplay.textContent = `MÀN ${GameState.currentLevel}`;
