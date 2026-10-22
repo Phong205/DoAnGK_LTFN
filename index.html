@@ -7,7 +7,13 @@
     <link rel="stylesheet" href="assets/bootstrap.min.css">
     <style>
         body {
-            background-color: #080c14;
+            background-color: #0d1322;
+            background-image:
+                    radial-gradient(circle at 10% 20%, rgba(0, 242, 254, 0.05) 0%, transparent 20%),
+                    radial-gradient(circle at 90% 80%, rgba(255, 71, 87, 0.05) 0%, transparent 20%),
+                    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             color: #f8fafc;
             overflow-x: hidden;
@@ -103,6 +109,21 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 242, 254, 0.3);
         }
+
+        .side-dashboard {
+            background-color: rgba(30, 41, 59, 0.75) !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            transition: opacity 0.3s ease;
+            display: flex !important;
+        }
+
+        @media (max-width: 992px) {
+            #leftSidebar, #rightSidebar {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body class="d-flex align-items-center justify-content-center min-vh-100 p-2">
@@ -120,61 +141,82 @@
         <span class="badge bg-danger px-3 py-2 fs-6">MẠNG: <span id="hudLives">3</span> ❤</span>
 
         <span id="healerHudBadge" class="badge bg-danger text-white px-3 py-2 fs-6 d-none">⚡ HỒI MỤC: <span id="healerTimerDisplay">60</span>s</span>
-        <span id="bossHudBadge" class="badge bg-danger text-white px-3 py-2 fs-6 d-none">👹 BOSS HP: <span id="bossHpDisplay">20</span>/30</span>
+        <span id="bossHudBadge" class="badge bg-danger text-white px-3 py-2 fs-6 d-none">👹 BOSS HP: <span id="bossHpDisplay">30</span>/30</span>
 
         <button id="btnGameMenu" class="badge bg-warning text-dark fw-bold px-3 py-2 fs-6 border-0 shadow-sm" style="cursor: pointer; transition: 0.2s;">
             ☰ MENU
         </button>
     </div>
 
-    <div id="screenWrapper" class="game-screen-wrapper mb-3">
-        <div id="playArea" style="width: 600px; height: 750px; position: absolute; top: 0; left: 0; transform-origin: top left;"></div>
+    <div class="d-flex align-items-center justify-content-center gap-4 w-100 position-relative">
 
-        <div id="homeOverlay" class="screen-overlay d-flex flex-column align-items-center justify-content-center">
-            <span class="badge bg-danger mb-2 px-3 py-2 fs-6">Sẵn sàng</span>
-            <p class="text-light small mb-0">Nhấn "Chơi mới" để bắt đầu trò chơi</p>
-        </div>
-
-        <div id="launchHintOverlay" class="screen-overlay d-none flex-column align-items-center justify-content-end pb-5">
-            <div class="badge bg-dark bg-opacity-75 border border-warning text-warning fs-6 px-3 py-2">
-                🖱️ Nhấn chuột để phóng bóng
+        <div id="leftSidebar" class="side-dashboard d-none flex-column align-items-center p-3 rounded border border-info bg-dark bg-opacity-50" style="width: 180px; height: 500px;">
+            <h6 class="text-info fw-bold mb-3 w-100 text-center border-bottom pb-2">⚡ TRẠNG THÁI</h6>
+            <div id="buffList" class="d-flex flex-column gap-2 w-100 text-start small">
+                <span class="text-secondary fst-italic">Chưa có buff</span>
             </div>
         </div>
 
-        <div id="tutorialOverlay" class="game-overlay d-none flex-column align-items-center justify-content-center p-3">
-            <div class="tutorial-card bg-dark border border-warning rounded p-4 text-center shadow-lg">
-                <h3 id="tutorialTitle" class="text-warning fw-bold mb-3">MÀN 1: GẠCH CƠ BẢN</h3>
-                <div id="tutorialDesc" class="text-start text-light mb-4">
-                    <p class="mb-2">👉 <strong>Cơ chế:</strong> Toàn bộ các khối gạch vỡ sau 1 chạm.</p>
-                    <p class="mb-2">🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc dùng phím mũi tên <strong>Trái / Phải</strong> (hoặc <strong>A / D</strong>).</p>
-                    <p class="mb-0">🖱️ <strong>Khởi động:</strong> Nhấn chuột trái để phóng bóng bắt đầu chơi.</p>
-                </div>
+        <div id="screenWrapper" class="game-screen-wrapper mb-3">
+            <div id="playArea" style="width: 600px; height: 750px; position: absolute; top: 0; left: 0; transform-origin: top left;"></div>
 
-                <button id="btnStartGameplay" class="btn btn-warning btn-lg fw-bold px-5">Tiếp tục ➔</button>
+            <div id="homeOverlay" class="screen-overlay d-flex flex-column align-items-center justify-content-center">
+                <span class="badge bg-danger mb-2 px-3 py-2 fs-6">Sẵn sàng</span>
+                <p class="text-light small mb-0">Nhấn "Chơi mới" để bắt đầu trò chơi</p>
             </div>
-        </div>
 
-        <div id="pauseOverlay" class="game-overlay d-none flex-column align-items-center justify-content-center">
-            <h2 class="text-warning fw-bold display-6 mb-4">DỪNG LẠI</h2>
-            <div class="d-flex flex-column gap-2 col-8 col-sm-6">
-                <button id="btnResumeGame" class="btn btn-success fw-bold">Tiếp tục</button>
-                <button id="btnSelectLevelFromPause" class="btn btn-outline-light">Chọn màn</button>
-                <button id="btnHomeFromPause" class="btn btn-outline-light">Trở về màn hình chính</button>
-                <button id="btnExitFromPause" class="btn btn-outline-danger">Thoát game</button>
-            </div>
-        </div>
-
-        <div id="victoryOverlay" class="game-overlay d-none flex-column align-items-center justify-content-center p-3">
-            <div class="tutorial-card bg-dark border border-success rounded p-4 text-center shadow-lg">
-                <h2 class="text-success fw-bold display-6 mb-2">🎉 BẠN THẮNG! 🎉</h2>
-                <p class="text-light mb-4">Chúc mừng bạn đã dọn sạch toàn bộ các khối gạch.</p>
-                <div class="d-flex flex-column gap-2">
-                    <button id="btnVictoryContinue" class="btn btn-success btn-lg fw-bold">Tiếp tục</button>
-                    <button id="btnVictorySelectLevel" class="btn btn-outline-light">Chọn màn</button>
-                    <button id="btnVictoryHome" class="btn btn-outline-secondary">Trở về màn hình chính</button>
+            <div id="launchHintOverlay" class="screen-overlay d-none flex-column align-items-center justify-content-end pb-5">
+                <div class="badge bg-dark bg-opacity-75 border border-warning text-warning fs-6 px-3 py-2">
+                    🖱️ Nhấn chuột để phóng bóng
                 </div>
             </div>
+
+            <div id="tutorialOverlay" class="game-overlay d-none flex-column align-items-center justify-content-center p-3">
+                <div class="tutorial-card bg-dark border border-warning rounded p-4 text-center shadow-lg">
+                    <h3 id="tutorialTitle" class="text-warning fw-bold mb-3">MÀN 1: GẠCH CƠ BẢN</h3>
+                    <div id="tutorialDesc" class="text-start text-light mb-4">
+                        <p class="mb-2">👉 <strong>Cơ chế:</strong> Toàn bộ các khối gạch vỡ sau 1 chạm.</p>
+                        <p class="mb-2">🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc dùng phím mũi tên <strong>Trái / Phải</strong> (hoặc <strong>A / D</strong>).</p>
+                        <p class="mb-0">🖱️ <strong>Khởi động:</strong> Nhấn chuột trái để phóng bóng bắt đầu chơi.</p>
+                    </div>
+
+                    <button id="btnStartGameplay" class="btn btn-warning btn-lg fw-bold px-5">Tiếp tục ➔</button>
+                </div>
+            </div>
+
+            <div id="pauseOverlay" class="game-overlay d-none flex-column align-items-center justify-content-center">
+                <h2 class="text-warning fw-bold display-6 mb-4">DỪNG LẠI</h2>
+                <div class="d-flex flex-column gap-2 col-8 col-sm-6">
+                    <button id="btnResumeGame" class="btn btn-success fw-bold">Tiếp tục</button>
+                    <button id="btnSelectLevelFromPause" class="btn btn-outline-light">Chọn màn</button>
+                    <button id="btnHomeFromPause" class="btn btn-outline-light">Trở về màn hình chính</button>
+                    <button id="btnExitFromPause" class="btn btn-outline-danger">Thoát game</button>
+                </div>
+            </div>
+
+            <div id="victoryOverlay" class="game-overlay d-none flex-column align-items-center justify-content-center p-3">
+                <div class="tutorial-card bg-dark border border-success rounded p-4 text-center shadow-lg">
+                    <h2 class="text-success fw-bold display-6 mb-2">🎉 BẠN THẮNG! 🎉</h2>
+                    <p class="text-light mb-4">Chúc mừng bạn đã dọn sạch toàn bộ các khối gạch.</p>
+                    <div class="d-flex flex-column gap-2">
+                        <button id="btnVictoryContinue" class="btn btn-success btn-lg fw-bold">Tiếp tục</button>
+                        <button id="btnVictorySelectLevel" class="btn btn-outline-light">Chọn màn</button>
+                        <button id="btnVictoryHome" class="btn btn-outline-secondary">Trở về màn hình chính</button>
+                    </div>
+                </div>
+            </div>
         </div>
+
+        <div id="rightSidebar" class="side-dashboard d-none flex-column align-items-center p-3 rounded border border-warning bg-dark bg-opacity-50" style="width: 180px; height: 500px;">
+            <h6 class="text-warning fw-bold mb-3 w-100 text-center border-bottom pb-2">📊 THỐNG KÊ</h6>
+            <div class="d-flex flex-column gap-3 w-100 small text-start text-light">
+                <div>🧱 Gạch còn lại:<br><strong id="statBricks" class="text-warning fs-6">0</strong></div>
+                <div>🔥 Hỏa lực:<br><strong id="statFireball" class="text-danger">Tắt</strong></div>
+                <div>🛡️ Khiên bảo vệ:<br><strong id="statShield" class="text-info">Không</strong></div>
+                <div>🏆 Kỷ lục:<br><strong id="statHighScore" class="text-success fs-6">0</strong></div>
+            </div>
+        </div>
+
     </div>
 
     <section id="homeActions" class="menu-actions d-flex flex-column gap-2">

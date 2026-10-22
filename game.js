@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const InterfaceElements = {
+    const ui = {
         mainHeader: document.getElementById("mainHeader"),
         homeActions: document.getElementById("homeActions"),
         levelSelectArea: document.getElementById("levelSelectArea"),
@@ -10,152 +10,148 @@ document.addEventListener("DOMContentLoaded", () => {
         tutorialOverlay: document.getElementById("tutorialOverlay"),
         pauseOverlay: document.getElementById("pauseOverlay"),
         victoryOverlay: document.getElementById("victoryOverlay"),
-        scoreDisplay: document.getElementById("hudScore"),
-        livesDisplay: document.getElementById("hudLives"),
-        levelDisplay: document.getElementById("hudLevel"),
+        leftSidebar: document.getElementById("leftSidebar"),
+        rightSidebar: document.getElementById("rightSidebar"),
+        buffList: document.getElementById("buffList"),
+        score: document.getElementById("hudScore"),
+        lives: document.getElementById("hudLives"),
+        level: document.getElementById("hudLevel"),
         playArea: document.getElementById("playArea")
     };
 
-    const boardObserver = new ResizeObserver(() => {
-        const currentWidth = InterfaceElements.screenWrapper.clientWidth;
-        const scaleRatio = currentWidth / 600;
-        InterfaceElements.playArea.style.transform = `scale(${scaleRatio})`;
+    const observer = new ResizeObserver(() => {
+        const w = ui.screenWrapper.clientWidth;
+        ui.playArea.style.transform = `scale(${w / 600})`;
     });
-    boardObserver.observe(InterfaceElements.screenWrapper);
+    observer.observe(ui.screenWrapper);
 
-    const Buttons = {
+    const btn = {
         newGame: document.getElementById("btnNewGame"),
         continueGame: document.getElementById("btnContinue"),
-        backToHome: document.getElementById("btnBackToHome"),
-        startGameplay: document.getElementById("btnStartGameplay"),
-        gameMenu: document.getElementById("btnGameMenu"),
-        resumeGame: document.getElementById("btnResumeGame"),
-        selectLevelFromPause: document.getElementById("btnSelectLevelFromPause"),
-        homeFromPause: document.getElementById("btnHomeFromPause"),
-        exitFromPause: document.getElementById("btnExitFromPause"),
+        backHome: document.getElementById("btnBackToHome"),
+        startGame: document.getElementById("btnStartGameplay"),
+        menu: document.getElementById("btnGameMenu"),
+        resume: document.getElementById("btnResumeGame"),
+        selectLevel: document.getElementById("btnSelectLevelFromPause"),
+        homePause: document.getElementById("btnHomeFromPause"),
+        exitPause: document.getElementById("btnExitFromPause"),
         confirmExit: document.getElementById("btnConfirmExit"),
         confirmReset: document.getElementById("btnConfirmReset"),
-        victoryContinue: document.getElementById("btnVictoryContinue"),
-        victorySelectLevel: document.getElementById("btnVictorySelectLevel"),
-        victoryHome: document.getElementById("btnVictoryHome")
+        vicContinue: document.getElementById("btnVictoryContinue"),
+        vicSelectLevel: document.getElementById("btnVictorySelectLevel"),
+        vicHome: document.getElementById("btnVictoryHome")
     };
 
-    const GameState = {
-        isGameRunning: false,
-        isBallLaunched: false,
-        animationFrameId: null,
-        currentScore: 0,
-        currentLives: 3,
-        currentLevel: 1,
-        totalBricksToBreak: 0,
-        baseBallSpeed: 4.2,
-        activeBalls: [],
-        fallingItems: [],
-        activeBricks: [],
-        bossProjectiles: [],
-        bossAttackTimer: 0,
+    const state = {
+        running: false,
+        launched: false,
+        animId: null,
+        score: 0,
+        lives: 3,
+        level: 1,
+        bricksLeft: 0,
+        ballSpeed: 4.2,
+        balls: [],
+        items: [],
+        bricks: [],
+        bullets: [],
+        bossTimer: 0,
         paddle: {
-            element: null,
-            width: 120,
-            height: 16,
-            positionX: 240,
-            positionY: 705,
-            moveSpeed: 7.5,
-            hasFireballBuff: false
+            el: null,
+            w: 120,
+            h: 16,
+            x: 240,
+            y: 705,
+            speed: 7.5,
+            fireball: false
         },
         shield: {
-            element: null,
-            isActive: false,
-            remainingTime: 0
+            el: null,
+            active: false,
+            time: 0
         },
-        controls: {
-            moveLeft: false,
-            moveRight: false
+        keys: {
+            left: false,
+            right: false
         },
-        audioContext: null,
-        soundVolume: 0.7,
-        bgmVolume: 0.5,
-        triggerCooldown: 0
+        audioCtx: null,
+        sfxVol: 0.7,
+        bgmVol: 0.5,
+        cooldown: 0
     };
 
-    const LevelConfig = {
-        rowCount: 12,
-        columnCount: 15,
-        brickWidth: 30,
-        brickHeight: 10,
-        brickPadding: 5,
-        offsetTop: 70,
+    const cfg = {
+        rows: 12,
+        cols: 15,
+        bW: 30,
+        bH: 10,
+        pad: 5,
+        top: 70,
         colors: ["#00a8ff", "#1e90ff", "#00f2fe", "#48dbfb", "#0abde3", "#70a1ff"]
     };
-    LevelConfig.offsetLeft = (600 - (LevelConfig.columnCount * (LevelConfig.brickWidth + LevelConfig.brickPadding) - LevelConfig.brickPadding)) / 2;
+    cfg.left = (600 - (cfg.cols * (cfg.bW + cfg.pad) - cfg.pad)) / 2;
 
-    function initializeAudioSystem() {
-        if (!GameState.audioContext) {
-            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-            if (AudioContextClass) {
-                GameState.audioContext = new AudioContextClass();
-            }
+    function initAudio() {
+        if (!state.audioCtx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) state.audioCtx = new AC();
         }
     }
 
-    function playCollisionSound() {
-        if (!GameState.audioContext || GameState.soundVolume <= 0) return;
+    function playSound() {
+        if (!state.audioCtx || state.sfxVol <= 0) return;
         try {
-            const oscillator = GameState.audioContext.createOscillator();
-            const gainNode = GameState.audioContext.createGain();
-            oscillator.type = "sine";
-            oscillator.frequency.setValueAtTime(440, GameState.audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(880, GameState.audioContext.currentTime + 0.05);
-            gainNode.gain.setValueAtTime(GameState.soundVolume, GameState.audioContext.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.01, GameState.audioContext.currentTime + 0.05);
-            oscillator.connect(gainNode);
-            gainNode.connect(GameState.audioContext.destination);
-            oscillator.start();
-            oscillator.stop(GameState.audioContext.currentTime + 0.05);
-        } catch (error) {
-            console.error("Audio error:", error);
-        }
+            const osc = state.audioCtx.createOscillator();
+            const gain = state.audioCtx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(440, state.audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(880, state.audioCtx.currentTime + 0.05);
+            gain.gain.setValueAtTime(state.sfxVol, state.audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, state.audioCtx.currentTime + 0.05);
+            osc.connect(gain);
+            gain.connect(state.audioCtx.destination);
+            osc.start();
+            osc.stop(state.audioCtx.currentTime + 0.05);
+        } catch (e) {}
     }
 
-    function createHtmlElement(tagName, styles) {
-        const element = document.createElement(tagName);
-        Object.assign(element.style, styles);
-        element.style.position = "absolute";
-        return element;
+    function createEl(tag, css) {
+        const el = document.createElement(tag);
+        Object.assign(el.style, css);
+        el.style.position = "absolute";
+        return el;
     }
 
-    function generateNewBallObject(startX, startY) {
+    function newBall(x, y) {
         return {
-            element: null,
-            radius: 9,
-            positionX: startX,
-            positionY: startY,
-            velocityX: 0,
-            velocityY: 0,
-            currentSpeed: GameState.baseBallSpeed,
-            isFireball: false
+            el: null,
+            r: 9,
+            x: x,
+            y: y,
+            vx: 0,
+            vy: 0,
+            speed: state.ballSpeed,
+            fireball: false
         };
     }
 
-    function clearEntirePlayArea() {
-        if (InterfaceElements.playArea) {
-            InterfaceElements.playArea.innerHTML = "";
-        }
+    function clearArea() {
+        if (ui.playArea) ui.playArea.innerHTML = "";
     }
 
-    function setupPaddleElement() {
-        GameState.paddle.element = createHtmlElement("div", {
-            width: GameState.paddle.width + "px",
-            height: GameState.paddle.height + "px",
+    function initPaddle() {
+        state.paddle.el = createEl("div", {
+            width: state.paddle.w + "px",
+            height: state.paddle.h + "px",
             borderRadius: "6px",
             backgroundColor: "#00f2fe",
             transition: "width 0.2s"
         });
-        InterfaceElements.playArea.appendChild(GameState.paddle.element);
+        ui.playArea.appendChild(state.paddle.el);
     }
 
-    function setupShieldElement() {
-        GameState.shield.element = createHtmlElement("div", {
+    function initShield() {
+        state.shield.el = createEl("div", {
             width: "600px",
             height: "10px",
             bottom: "10px",
@@ -163,51 +159,49 @@ document.addEventListener("DOMContentLoaded", () => {
             backgroundColor: "rgba(0, 210, 211, 0.7)",
             display: "none"
         });
-        InterfaceElements.playArea.appendChild(GameState.shield.element);
+        ui.playArea.appendChild(state.shield.el);
     }
 
-    function setupBallElement(ballObject) {
-        ballObject.element = createHtmlElement("div", {
-            width: (ballObject.radius * 2) + "px",
-            height: (ballObject.radius * 2) + "px",
+    function initBall(b) {
+        b.el = createEl("div", {
+            width: (b.r * 2) + "px",
+            height: (b.r * 2) + "px",
             borderRadius: "50%",
             backgroundColor: "#ffffff"
         });
-        InterfaceElements.playArea.appendChild(ballObject.element);
+        ui.playArea.appendChild(b.el);
     }
 
-    function instantiateBrickNode(col, row, hp, isU, isH, isHideable, isT, isTOn, isHealer, isBoss, customColor) {
-        const calculatedX = col * (LevelConfig.brickWidth + LevelConfig.brickPadding) + LevelConfig.offsetLeft;
-        const calculatedY = row * (LevelConfig.brickHeight + LevelConfig.brickPadding) + LevelConfig.offsetTop;
+    function createBrick(c, r, hp, isU, isH, isHideable, isT, isTOn, isHealer, isBoss, col) {
+        const x = c * (cfg.bW + cfg.pad) + cfg.left;
+        const y = r * (cfg.bH + cfg.pad) + cfg.top;
+        const w = isBoss ? cfg.bW * 3 : cfg.bW;
+        const h = isBoss ? cfg.bH * 2.5 : cfg.bH;
 
-        const finalWidth = isBoss ? LevelConfig.brickWidth * 3 : LevelConfig.brickWidth;
-        const finalHeight = isBoss ? LevelConfig.brickHeight * 2.5 : LevelConfig.brickHeight;
+        let color = isBoss ? "#1a1a2e" : col;
 
-        let brickColor = customColor;
-        if (isBoss) brickColor = "#1a1a2e";
-
-        const brickElement = createHtmlElement("div", {
-            width: finalWidth + "px",
-            height: finalHeight + "px",
-            backgroundColor: brickColor,
+        const el = createEl("div", {
+            width: w + "px",
+            height: h + "px",
+            backgroundColor: color,
             border: isBoss ? "2px solid #ff4757" : (isU ? (isT ? "2px solid #fff" : "2px solid #2c3e50") : "1px solid rgba(0,0,0,0.3)"),
             borderRadius: isBoss ? "6px" : "2px",
-            left: calculatedX + "px",
-            top: calculatedY + "px",
+            left: x + "px",
+            top: y + "px",
             boxSizing: "border-box",
             opacity: isH ? "0" : "1",
             transition: "opacity 0.4s, box-shadow 0.3s, background-color 0.3s"
         });
 
         if (isT) {
-            brickElement.style.boxShadow = "0 0 12px #ff9f43";
+            el.style.boxShadow = "0 0 12px #ff9f43";
         } else if (isBoss) {
-            brickElement.style.boxShadow = "0 0 20px #ff4757, inset 0 0 10px #ff4757";
+            el.style.boxShadow = "0 0 20px #ff4757, inset 0 0 10px #ff4757";
 
-            const eyeLeft = createHtmlElement("div", { width: "6px", height: "6px", backgroundColor: "#ff4757", borderRadius: "50%", left: "15px", top: "8px", boxShadow: "0 0 8px #ff4757" });
-            const eyeRight = createHtmlElement("div", { width: "6px", height: "6px", backgroundColor: "#ff4757", borderRadius: "50%", right: "15px", top: "8px", boxShadow: "0 0 8px #ff4757" });
+            const eyeL = createEl("div", { width: "6px", height: "6px", backgroundColor: "#ff4757", borderRadius: "50%", left: "15px", top: "8px", boxShadow: "0 0 8px #ff4757" });
+            const eyeR = createEl("div", { width: "6px", height: "6px", backgroundColor: "#ff4757", borderRadius: "50%", right: "15px", top: "8px", boxShadow: "0 0 8px #ff4757" });
 
-            const miniHpBar = createHtmlElement("div", {
+            const hpBar = createEl("div", {
                 width: "100%",
                 height: "4px",
                 backgroundColor: "rgba(255,255,255,0.2)",
@@ -217,329 +211,339 @@ document.addEventListener("DOMContentLoaded", () => {
                 overflow: "hidden"
             });
 
-            const hpPercent = Math.max(0, Math.min(100, (hp / 30) * 100));
-            const miniHpFill = createHtmlElement("div", {
-                id: `bossMiniHpFill_${col}_${row}`,
-                width: hpPercent + "%",
+            const pct = Math.max(0, Math.min(100, (hp / 30) * 100));
+            const hpFill = createEl("div", {
+                id: `bossHp_${c}_${r}`,
+                width: pct + "%",
                 height: "100%",
                 backgroundColor: "#2ed573",
                 top: "0px",
                 left: "0px"
             });
-            miniHpBar.appendChild(miniHpFill);
+            hpBar.appendChild(hpFill);
 
-            brickElement.appendChild(eyeLeft);
-            brickElement.appendChild(eyeRight);
-            brickElement.appendChild(miniHpBar);
+            el.appendChild(eyeL);
+            el.appendChild(eyeR);
+            el.appendChild(hpBar);
         }
 
-        InterfaceElements.playArea.appendChild(brickElement);
+        ui.playArea.appendChild(el);
 
         return {
-            element: brickElement,
-            positionX: calculatedX,
-            positionY: calculatedY,
-            width: finalWidth,
-            height: finalHeight,
-            isActive: true,
+            el: el,
+            x: x,
+            y: y,
+            w: w,
+            h: h,
+            active: true,
             hp: hp,
-            hitCooldown: 0,
-            isUnbreakable: isU,
-            isHidden: isH,
+            cooldown: 0,
+            isU: isU,
+            isH: isH,
             isHideable: isHideable,
-            isTrigger: isT,
-            isTriggerOn: isTOn,
+            isT: isT,
+            isTOn: isTOn,
             isHealer: isHealer,
             isBoss: isBoss,
             healTimer: 0
         };
     }
 
-    function buildLevelBricks() {
-        clearEntirePlayArea();
-        setupPaddleElement();
-        setupShieldElement();
+    function initLevel() {
+        clearArea();
+        initPaddle();
+        initShield();
 
-        GameState.activeBricks = [];
-        GameState.fallingItems = [];
-        GameState.activeBalls = [];
-        GameState.bossProjectiles = [];
-        GameState.bossAttackTimer = 0;
-        GameState.totalBricksToBreak = 0;
-        GameState.paddle.width = 120;
-        GameState.paddle.hasFireballBuff = false;
-        GameState.shield.isActive = false;
-        GameState.triggerCooldown = 0;
+        state.bricks = [];
+        state.items = [];
+        state.balls = [];
+        state.bullets = [];
+        state.bossTimer = 0;
+        state.bricksLeft = 0;
+        state.paddle.w = 120;
+        state.paddle.fireball = false;
+        state.shield.active = false;
+        state.cooldown = 0;
 
-        for (let col = 0; col < LevelConfig.columnCount; col++) {
-            GameState.activeBricks[col] = [];
-            for (let row = 0; row < LevelConfig.rowCount; row++) {
-                let brickHp = 1;
-                let brickColor = LevelConfig.colors[row % LevelConfig.colors.length];
-                let isUnbreakable = false;
-                let isHidden = false;
+        for (let c = 0; c < cfg.cols; c++) {
+            state.bricks[c] = [];
+            for (let r = 0; r < cfg.rows; r++) {
+                let hp = 1;
+                let color = cfg.colors[r % cfg.colors.length];
+                let isU = false;
+                let isH = false;
                 let isHideable = false;
-                let isTrigger = false;
+                let isT = false;
                 let isHealer = false;
                 let isBoss = false;
-                let isActive = true;
+                let active = true;
 
-                if (GameState.currentLevel === 1) {
-                    brickColor = "#00f2fe";
-                } else if (GameState.currentLevel === 2) {
-                    const Level2Colors = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
-                    if (row < 2) brickHp = 5;
-                    else if (row < 4) brickHp = 4;
-                    else if (row < 7) brickHp = 3;
-                    else if (row < 9) brickHp = 2;
-                    else brickHp = 1;
-                    brickColor = Level2Colors[brickHp];
-                } else if (GameState.currentLevel === 3) {
-                    if (row === 4 || row === 8) {
-                        if (col !== 2 && col !== 7 && col !== 12) {
-                            isUnbreakable = true;
-                            brickHp = -1;
-                            brickColor = "#7f8c8d";
-                        }
+                if (state.level === 1) {
+                    color = "#00f2fe";
+                } else if (state.level === 2) {
+                    const l2Cols = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
+                    if (r < 2) hp = 5;
+                    else if (r < 4) hp = 4;
+                    else if (r < 7) hp = 3;
+                    else if (r < 9) hp = 2;
+                    else hp = 1;
+                    color = l2Cols[hp];
+                } else if (state.level === 3) {
+                    if ((r === 4 || r === 8) && (c !== 2 && c !== 7 && c !== 12)) {
+                        isU = true;
+                        hp = -1;
+                        color = "#7f8c8d";
                     }
-                } else if (GameState.currentLevel === 4) {
-                    if ((row === 3 && col === 7) || (row === 6 && col === 3) || (row === 6 && col === 11)) {
-                        isTrigger = true;
-                        isUnbreakable = true;
-                        brickHp = -1;
-                        brickColor = "#ff9f43";
-                    } else if (row >= 2 && row <= 8 && col >= 2 && col <= 12) {
-                        isHidden = true;
+                } else if (state.level === 4) {
+                    if ((r === 3 && c === 7) || (r === 6 && c === 3) || (r === 6 && c === 11)) {
+                        isT = true;
+                        isU = true;
+                        hp = -1;
+                        color = "#ff9f43";
+                    } else if (r >= 2 && r <= 8 && c >= 2 && c <= 12) {
+                        isH = true;
                         isHideable = true;
-                        brickColor = "#1dd1a1";
+                        color = "#1dd1a1";
                     } else {
-                        isActive = false;
+                        active = false;
                     }
-                } else if (GameState.currentLevel === 5) {
-                    isActive = false;
-                    brickHp = 1;
-                    brickColor = "#1e90ff";
+                } else if (state.level === 5) {
+                    active = false;
+                    hp = 1;
+                    color = "#1e90ff";
 
-                    if (row === 0 || row === 1 || row === 10 || row === 11 || col === 0 || col === 14) {
-                        isActive = true;
+                    if (r === 0 || r === 1 || r === 10 || r === 11 || c === 0 || c === 14) {
+                        active = true;
                     }
 
                     const centers = [[3, 3], [3, 11], [8, 7]];
                     for (let i = 0; i < centers.length; i++) {
                         const cr = centers[i][0];
                         const cc = centers[i][1];
-                        const dr = Math.abs(row - cr);
-                        const dc = Math.abs(col - cc);
+                        const dr = Math.abs(r - cr);
+                        const dc = Math.abs(c - cc);
 
                         if (dr === 0 && dc === 0) {
                             isHealer = true;
-                            brickHp = 2;
-                            brickColor = "#e84393";
-                            isActive = true;
+                            hp = 2;
+                            color = "#e84393";
+                            active = true;
                         } else if (dr <= 2 && dc <= 2) {
-                            brickHp = 2;
-                            brickColor = "#2ed573";
-                            isActive = true;
+                            hp = 2;
+                            color = "#2ed573";
+                            active = true;
                         }
                     }
-                } else if (GameState.currentLevel === 6) {
-                    isActive = false;
-                    brickHp = 1;
-                    brickColor = "#1e90ff";
+                } else if (state.level === 6) {
+                    active = false;
+                    hp = 1;
+                    color = "#1e90ff";
 
-                    if (row === 11 && (col === 4 || col === 5 || col === 6 || col === 8 || col === 9 || col === 10) ) {
-                        isUnbreakable = true;
-                        brickHp = -1;
-                        brickColor = "#a4a4a4";
-                        isActive = true;
-                    } else if (row === 3 && col === 6) {
+                    if (r === 11 && (c === 4 || c === 5 || c === 6 || c === 8 || c === 9 || c === 10)) {
+                        isU = true;
+                        hp = -1;
+                        color = "#a4a4a4";
+                        active = true;
+                    } else if (r === 3 && c === 6) {
                         isBoss = true;
-                        isUnbreakable = false;
-                        brickHp = 30;
-                        brickColor = "#1a1a2e";
-                        isActive = true;
-                    } else if (row === 0 || row === 1 || col === 0 || col === 1 || col === 2 || col === 12 || col === 13 || col === 14) {
-                        isActive = true;
-                        brickHp = 1;
-                        brickColor = "#1e90ff";
+                        isU = false;
+                        hp = 30;
+                        color = "#1a1a2e";
+                        active = true;
+                    } else if (r === 0 || r === 1 || c === 0 || c === 1 || c === 2 || c === 12 || c === 13 || c === 14) {
+                        active = true;
+                        hp = 1;
+                        color = "#1e90ff";
                     }
                 }
 
-                if (!isActive) {
-                    GameState.activeBricks[col][row] = { isActive: false };
+                if (!active) {
+                    state.bricks[c][r] = { active: false };
                     continue;
                 }
 
-                GameState.activeBricks[col][row] = instantiateBrickNode(col, row, brickHp, isUnbreakable, isHidden, isHideable, isTrigger, false, isHealer, isBoss, brickColor);
+                state.bricks[c][r] = createBrick(c, r, hp, isU, isH, isHideable, isT, false, isHealer, isBoss, color);
 
-                if (!isUnbreakable && !isBoss) {
-                    GameState.totalBricksToBreak++;
+                if (!isU && !isBoss) {
+                    state.bricksLeft++;
                 }
             }
         }
     }
 
-    function resetBallsToPaddle() {
-        GameState.isBallLaunched = false;
-        GameState.paddle.hasFireballBuff = false;
+    function resetBall() {
+        state.launched = false;
+        state.paddle.fireball = false;
 
-        GameState.activeBalls.forEach(ball => {
-            if (ball.element) ball.element.remove();
-        });
+        state.balls.forEach(b => { if (b.el) b.el.remove(); });
 
-        const initialBall = generateNewBallObject(
-            GameState.paddle.positionX + GameState.paddle.width / 2,
-            GameState.paddle.positionY - 9
-        );
-        setupBallElement(initialBall);
-        GameState.activeBalls = [initialBall];
+        const b = newBall(state.paddle.x + state.paddle.w / 2, state.paddle.y - 9);
+        initBall(b);
+        state.balls = [b];
 
-        if (GameState.isGameRunning) {
-            InterfaceElements.launchHintOverlay.classList.remove("d-none");
-            InterfaceElements.launchHintOverlay.classList.add("d-flex");
+        if (state.running) {
+            ui.launchHintOverlay.classList.remove("d-none");
+            ui.launchHintOverlay.classList.add("d-flex");
         }
     }
 
-    function launchAllBalls() {
-        if (!GameState.isGameRunning || GameState.isBallLaunched) return;
+    function launchBall() {
+        if (!state.running || state.launched) return;
 
-        GameState.isBallLaunched = true;
-        InterfaceElements.launchHintOverlay.classList.add("d-none");
-        InterfaceElements.launchHintOverlay.classList.remove("d-flex");
+        state.launched = true;
+        ui.launchHintOverlay.classList.add("d-none");
+        ui.launchHintOverlay.classList.remove("d-flex");
 
-        GameState.activeBalls.forEach(ball => {
-            const launchAngle = (Math.PI / 4) + (Math.random() * (Math.PI / 2));
-            const directionX = Math.random() < 0.5 ? -1 : 1;
-            ball.velocityX = ball.currentSpeed * Math.cos(launchAngle) * directionX;
-            ball.velocityY = -Math.abs(ball.currentSpeed * Math.sin(launchAngle));
+        state.balls.forEach(b => {
+            const angle = (Math.PI / 4) + (Math.random() * (Math.PI / 2));
+            const dirX = Math.random() < 0.5 ? -1 : 1;
+            b.vx = b.speed * Math.cos(angle) * dirX;
+            b.vy = -Math.abs(b.speed * Math.sin(angle));
         });
     }
 
-    function renderGraphicsToScreen() {
-        GameState.paddle.element.style.transform = `translate(${GameState.paddle.positionX}px, ${GameState.paddle.positionY}px)`;
-        GameState.paddle.element.style.width = GameState.paddle.width + "px";
-        GameState.paddle.element.style.backgroundColor = GameState.paddle.hasFireballBuff ? "#ff4757" : "#00f2fe";
+    function updateSidebar() {
+        const statBricks = document.getElementById("statBricks");
+        const statFireball = document.getElementById("statFireball");
+        const statShield = document.getElementById("statShield");
+        const statHighScore = document.getElementById("statHighScore");
 
-        if (GameState.shield.isActive && GameState.shield.remainingTime > 0) {
-            GameState.shield.element.style.display = "block";
-            const isBlinking = GameState.shield.remainingTime < 180 && Math.floor(GameState.shield.remainingTime / 15) % 2 === 0;
-            GameState.shield.element.style.opacity = isBlinking ? "0.2" : "1";
+        if (statBricks) statBricks.textContent = state.bricksLeft;
+        if (statFireball) statFireball.textContent = state.paddle.fireball ? "Bật (⚡)" : "Tắt";
+        if (statShield) statShield.textContent = state.shield.active ? `${Math.ceil(state.shield.time / 60)}s` : "Không";
+
+        let hiScore = localStorage.getItem("BRICK_BREAKER_HIGH_SCORE") || 0;
+        if (state.score > hiScore) {
+            hiScore = state.score;
+            localStorage.setItem("BRICK_BREAKER_HIGH_SCORE", hiScore);
+        }
+        if (statHighScore) statHighScore.textContent = hiScore;
+
+        if (ui.buffList) {
+            let buffsHtml = "";
+            if (state.paddle.w > 120) buffsHtml += `<div class="text-warning">↔ Mở rộng thanh</div>`;
+            if (state.paddle.fireball) buffsHtml += `<div class="text-danger">🔥 Bóng lửa</div>`;
+            if (state.shield.active) buffsHtml += `<div class="text-info">🛡️ Khiên bảo vệ</div>`;
+            if (state.balls.length > 1) buffsHtml += `<div class="text-success">🍒 Đa bóng (${state.balls.length})</div>`;
+
+            ui.buffList.innerHTML = buffsHtml || `<span class="text-secondary fst-italic">Chưa có buff</span>`;
+        }
+    }
+
+    function draw() {
+        state.paddle.el.style.transform = `translate(${state.paddle.x}px, ${state.paddle.y}px)`;
+        state.paddle.el.style.width = state.paddle.w + "px";
+        state.paddle.el.style.backgroundColor = state.paddle.fireball ? "#ff4757" : "#00f2fe";
+
+        if (state.shield.active && state.shield.time > 0) {
+            state.shield.el.style.display = "block";
+            const blink = state.shield.time < 180 && Math.floor(state.shield.time / 15) % 2 === 0;
+            state.shield.el.style.opacity = blink ? "0.2" : "1";
         } else {
-            GameState.shield.element.style.display = "none";
+            state.shield.el.style.display = "none";
         }
 
-        GameState.activeBalls.forEach(ball => {
-            const visualX = ball.positionX - ball.radius;
-            const visualY = ball.positionY - ball.radius;
-            ball.element.style.transform = `translate(${visualX}px, ${visualY}px)`;
-
-            if (ball.isFireball) {
-                ball.element.style.backgroundColor = "#ff4757";
-                ball.element.style.boxShadow = "0 0 15px #ff4757";
+        state.balls.forEach(b => {
+            b.el.style.transform = `translate(${b.x - b.r}px, ${b.y - b.r}px)`;
+            if (b.fireball) {
+                b.el.style.backgroundColor = "#ff4757";
+                b.el.style.boxShadow = "0 0 15px #ff4757";
             } else {
-                ball.element.style.backgroundColor = "#ffffff";
-                ball.element.style.boxShadow = "none";
+                b.el.style.backgroundColor = "#ffffff";
+                b.el.style.boxShadow = "none";
             }
         });
 
-        GameState.fallingItems.forEach(item => {
-            const visualX = item.positionX - item.width / 2;
-            const visualY = item.positionY - item.height / 2;
-            item.element.style.transform = `translate(${visualX}px, ${visualY}px)`;
+        state.items.forEach(it => {
+            it.el.style.transform = `translate(${it.x - it.w / 2}px, ${it.y - it.h / 2}px)`;
         });
+
+        updateSidebar();
     }
 
-    document.addEventListener("keydown", (event) => {
-        if (["Right", "ArrowRight", "d", "D"].includes(event.key)) GameState.controls.moveRight = true;
-        if (["Left", "ArrowLeft", "a", "A"].includes(event.key)) GameState.controls.moveLeft = true;
+    document.addEventListener("keydown", (e) => {
+        if (["Right", "ArrowRight", "d", "D"].includes(e.key)) state.keys.right = true;
+        if (["Left", "ArrowLeft", "a", "A"].includes(e.key)) state.keys.left = true;
     });
 
-    document.addEventListener("keyup", (event) => {
-        if (["Right", "ArrowRight", "d", "D"].includes(event.key)) GameState.controls.moveRight = false;
-        if (["Left", "ArrowLeft", "a", "A"].includes(event.key)) GameState.controls.moveLeft = false;
+    document.addEventListener("keyup", (e) => {
+        if (["Right", "ArrowRight", "d", "D"].includes(e.key)) state.keys.right = false;
+        if (["Left", "ArrowLeft", "a", "A"].includes(e.key)) state.keys.left = false;
     });
 
-    InterfaceElements.playArea.addEventListener("mousemove", (event) => {
-        if (!GameState.isGameRunning) return;
-        const bounds = InterfaceElements.playArea.getBoundingClientRect();
-        const relativeMouseX = (event.clientX - bounds.left) * (600 / bounds.width);
+    ui.playArea.addEventListener("mousemove", (e) => {
+        if (!state.running) return;
+        const rect = ui.playArea.getBoundingClientRect();
+        const mouseX = (e.clientX - rect.left) * (600 / rect.width);
 
-        if (relativeMouseX > 0 && relativeMouseX < 600) {
-            const limitedX = Math.max(0, Math.min(600 - GameState.paddle.width, relativeMouseX - GameState.paddle.width / 2));
-            GameState.paddle.positionX = limitedX;
-
-            if (!GameState.isBallLaunched && GameState.activeBalls.length > 0) {
-                GameState.activeBalls[0].positionX = GameState.paddle.positionX + GameState.paddle.width / 2;
+        if (mouseX > 0 && mouseX < 600) {
+            state.paddle.x = Math.max(0, Math.min(600 - state.paddle.w, mouseX - state.paddle.w / 2));
+            if (!state.launched && state.balls.length > 0) {
+                state.balls[0].x = state.paddle.x + state.paddle.w / 2;
             }
         }
     });
 
-    InterfaceElements.playArea.addEventListener("click", launchAllBalls);
+    ui.playArea.addEventListener("click", launchBall);
 
-    function spawnRandomItem(spawnX, spawnY) {
+    function dropItem(x, y) {
         if (Math.random() >= 0.25) return;
 
-        const standardItems = [
-            { type: "expand", color: "#ffffff", iconFile: "expand.png" },
-            { type: "life", color: "#ffffff", iconFile: "life.png" },
-            { type: "slow", color: "#ffffff", iconFile: "slow.png" },
-            { type: "fireball", color: "#ffffff", iconFile: "fireball.png" },
-            { type: "shield", color: "#ffffff", iconFile: "shield.png" }
+        const list = [
+            { type: "expand", icon: "expand.png" },
+            { type: "life", icon: "life.png" },
+            { type: "slow", icon: "slow.png" },
+            { type: "fireball", icon: "fireball.png" },
+            { type: "shield", icon: "shield.png" }
         ];
 
-        if (GameState.activeBalls.length <= 2) {
-            standardItems.push({ type: "split", color: "#ffffff", iconFile: "split.png" });
-            standardItems.push({ type: "shoot", color: "#ffffff", iconFile: "shoot.png" });
+        if (state.balls.length <= 2) {
+            list.push({ type: "split", icon: "split.png" });
+            list.push({ type: "shoot", icon: "shoot.png" });
         }
 
-        const pickedItemInfo = standardItems[Math.floor(Math.random() * standardItems.length)];
+        const pick = list[Math.floor(Math.random() * list.length)];
 
-        const itemElement = createHtmlElement("div", {
+        const el = createEl("div", {
             width: "24px",
             height: "24px",
-            backgroundColor: pickedItemInfo.color,
+            backgroundColor: "#ffffff",
             borderRadius: "4px",
-            backgroundImage: `url('assets/icon_Item/${pickedItemInfo.iconFile}')`,
+            backgroundImage: `url('assets/icon_Item/${pick.icon}')`,
             backgroundSize: "cover",
-            backgroundPosition: "center",
-            cursor: "default"
+            backgroundPosition: "center"
         });
-        InterfaceElements.playArea.appendChild(itemElement);
+        ui.playArea.appendChild(el);
 
-        GameState.fallingItems.push({
-            positionX: spawnX,
-            positionY: spawnY,
-            width: 24,
-            height: 24,
-            type: pickedItemInfo.type,
-            element: itemElement
+        state.items.push({
+            x: x,
+            y: y,
+            w: 24,
+            h: 24,
+            type: pick.type,
+            el: el
         });
     }
 
-    function processBrickHit(brickObject, colIndex, rowIndex) {
-        if (brickObject.isTrigger) {
-            playCollisionSound();
-            if (GameState.triggerCooldown > 0) return;
-            GameState.triggerCooldown = 60;
-            const newState = !brickObject.isTriggerOn;
+    function hitBrick(b, col, row) {
+        if (b.isT) {
+            playSound();
+            if (state.cooldown > 0) return;
+            state.cooldown = 60;
+            const nextState = !b.isTOn;
 
-            for (let c = 0; c < LevelConfig.columnCount; c++) {
-                for (let r = 0; r < LevelConfig.rowCount; r++) {
-                    const b = GameState.activeBricks[c][r];
-                    if (b && b.isActive) {
-                        if (b.isTrigger) {
-                            b.hitCooldown = 15;
-                            b.isTriggerOn = newState;
-                            if (b.isTriggerOn) {
-                                b.element.style.backgroundColor = "#ff9f43";
-                                b.element.style.boxShadow = "0 0 12px #ff9f43";
-                            } else {
-                                b.element.style.backgroundColor = "#d35400";
-                                b.element.style.boxShadow = "none";
-                            }
-                        } else if (b.isHideable) {
-                            b.isHidden = newState;
-                            b.element.style.opacity = b.isHidden ? "0" : "1";
+            for (let c = 0; c < cfg.cols; c++) {
+                for (let r = 0; r < cfg.rows; r++) {
+                    const target = state.bricks[c][r];
+                    if (target && target.active) {
+                        if (target.isT) {
+                            target.cooldown = 15;
+                            target.isTOn = nextState;
+                            target.el.style.backgroundColor = target.isTOn ? "#ff9f43" : "#d35400";
+                            target.el.style.boxShadow = target.isTOn ? "0 0 12px #ff9f43" : "none";
+                        } else if (target.isHideable) {
+                            target.isH = nextState;
+                            target.el.style.opacity = target.isH ? "0" : "1";
                         }
                     }
                 }
@@ -547,113 +551,97 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        if (brickObject.isUnbreakable) {
-            playCollisionSound();
-            brickObject.hitCooldown = 15;
+        if (b.isU) {
+            playSound();
+            b.cooldown = 15;
             return;
         }
 
-        brickObject.hp--;
-        brickObject.hitCooldown = 15;
+        b.hp--;
+        b.cooldown = 15;
 
-        if (brickObject.isBoss) {
-            const fillBar = document.getElementById(`bossMiniHpFill_${colIndex}_${rowIndex}`);
-            if (fillBar) {
-                const percent = Math.max(0, Math.min(100, (brickObject.hp / 30) * 100));
-                fillBar.style.width = percent + "%";
-            }
+        if (b.isBoss) {
+            const fill = document.getElementById(`bossHp_${col}_${row}`);
+            if (fill) fill.style.width = Math.max(0, Math.min(100, (b.hp / 30) * 100)) + "%";
         }
 
-        if (brickObject.hp > 0) {
-            if (GameState.currentLevel === 2 || (GameState.currentLevel === 5 && !brickObject.isHealer)) {
-                const Level2Colors = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
-                brickObject.element.style.backgroundColor = Level2Colors[brickObject.hp] || "#1e90ff";
-            } else if (GameState.currentLevel === 5 && brickObject.isHealer) {
-                brickObject.element.style.backgroundColor = "#fd79a8";
-            } else if (GameState.currentLevel === 6 && brickObject.isBoss) {
-                brickObject.element.style.backgroundColor = "#1a1a2e";
+        if (b.hp > 0) {
+            if (state.level === 2 || (state.level === 5 && !b.isHealer)) {
+                const l2Cols = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
+                b.el.style.backgroundColor = l2Cols[b.hp] || "#1e90ff";
+            } else if (state.level === 5 && b.isHealer) {
+                b.el.style.backgroundColor = "#fd79a8";
+            } else if (state.level === 6 && b.isBoss) {
+                b.el.style.backgroundColor = "#1a1a2e";
             }
-            GameState.currentScore += 5;
-            InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
-            playCollisionSound();
+            state.score += 5;
+            ui.score.textContent = state.score;
+            playSound();
         } else {
-            brickObject.isActive = false;
-            brickObject.element.remove();
+            b.active = false;
+            b.el.remove();
 
-            GameState.currentScore += 10;
-            InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
+            state.score += 10;
+            ui.score.textContent = state.score;
 
-            if (!brickObject.isBoss) {
-                GameState.totalBricksToBreak--;
-            }
+            if (!b.isBoss) state.bricksLeft--;
 
-            playCollisionSound();
-            spawnRandomItem(brickObject.positionX + (brickObject.width || LevelConfig.brickWidth) / 2, brickObject.positionY + (brickObject.height || LevelConfig.brickHeight) / 2);
+            playSound();
+            dropItem(b.x + (b.w || cfg.bW) / 2, b.y + (b.h || cfg.bH) / 2);
 
-            let isVictory = false;
-            if (GameState.currentLevel === 6) {
-                if (brickObject.isBoss) isVictory = true;
-            } else {
-                if (GameState.totalBricksToBreak <= 0) isVictory = true;
-            }
+            let win = state.level === 6 ? b.isBoss : state.bricksLeft <= 0;
 
-            if (isVictory) {
-                GameState.isGameRunning = false;
-                cancelAnimationFrame(GameState.animationFrameId);
+            if (win) {
+                state.running = false;
+                cancelAnimationFrame(state.animId);
                 localStorage.removeItem("BRICK_BREAKER_SAVE");
-                updateContinueButtonState();
+                checkContinueBtn();
 
-                InterfaceElements.launchHintOverlay.classList.add("d-none");
-                InterfaceElements.launchHintOverlay.classList.remove("d-flex");
-                InterfaceElements.victoryOverlay.classList.remove("d-none");
-                InterfaceElements.victoryOverlay.classList.add("d-flex");
+                ui.launchHintOverlay.classList.add("d-none");
+                ui.launchHintOverlay.classList.remove("d-flex");
+                ui.victoryOverlay.classList.remove("d-none");
+                ui.victoryOverlay.classList.add("d-flex");
             }
         }
     }
 
-    function checkCollisionBetweenBallsAndBricks() {
-        for (let col = 0; col < LevelConfig.columnCount; col++) {
-            for (let row = 0; row < LevelConfig.rowCount; row++) {
-                const brick = GameState.activeBricks[col][row];
-                if (brick && brick.isActive && brick.hitCooldown > 0) {
-                    brick.hitCooldown--;
-                }
+    function checkCollisions() {
+        for (let c = 0; c < cfg.cols; c++) {
+            for (let r = 0; r < cfg.rows; r++) {
+                const b = state.bricks[c][r];
+                if (b && b.active && b.cooldown > 0) b.cooldown--;
             }
         }
 
-        GameState.activeBalls.forEach(ball => {
-            let hasBouncedThisFrame = false;
+        state.balls.forEach(b => {
+            let bounced = false;
 
-            for (let col = 0; col < LevelConfig.columnCount; col++) {
-                for (let row = 0; row < LevelConfig.rowCount; row++) {
-                    const brick = GameState.activeBricks[col][row];
+            for (let c = 0; c < cfg.cols; c++) {
+                for (let r = 0; r < cfg.rows; r++) {
+                    const brick = state.bricks[c][r];
 
-                    if (brick && brick.isActive && brick.hitCooldown <= 0 && !brick.isHidden) {
-                        const bWidth = brick.width || LevelConfig.brickWidth;
-                        const bHeight = brick.height || LevelConfig.brickHeight;
+                    if (brick && brick.active && brick.cooldown <= 0 && !brick.isH) {
+                        const bw = brick.w || cfg.bW;
+                        const bh = brick.h || cfg.bH;
 
-                        const isOverlappingX = ball.positionX + ball.radius > brick.positionX && ball.positionX - ball.radius < brick.positionX + bWidth;
-                        const isOverlappingY = ball.positionY + ball.radius > brick.positionY && ball.positionY - ball.radius < brick.positionY + bHeight;
+                        const hitX = b.x + b.r > brick.x && b.x - b.r < brick.x + bw;
+                        const hitY = b.y + b.r > brick.y && b.y - b.r < brick.y + bh;
 
-                        if (isOverlappingX && isOverlappingY) {
-                            if ((!ball.isFireball || brick.isUnbreakable) && !hasBouncedThisFrame) {
-                                const overlapLeft = (ball.positionX + ball.radius) - brick.positionX;
-                                const overlapRight = (brick.positionX + bWidth) - (ball.positionX - ball.radius);
-                                const overlapTop = (ball.positionY + ball.radius) - brick.positionY;
-                                const overlapBottom = (brick.positionY + bHeight) - (ball.positionY - ball.radius);
+                        if (hitX && hitY) {
+                            if ((!b.fireball || brick.isU) && !bounced) {
+                                const overlapL = (b.x + b.r) - brick.x;
+                                const overlapR = (brick.x + bw) - (b.x - b.r);
+                                const overlapT = (b.y + b.r) - brick.y;
+                                const overlapB = (brick.y + bh) - (b.y - b.r);
 
-                                const minOverlapX = Math.min(overlapLeft, overlapRight);
-                                const minOverlapY = Math.min(overlapTop, overlapBottom);
-
-                                if (minOverlapX < minOverlapY) {
-                                    ball.velocityX = -ball.velocityX;
+                                if (Math.min(overlapL, overlapR) < Math.min(overlapT, overlapB)) {
+                                    b.vx = -b.vx;
                                 } else {
-                                    ball.velocityY = -ball.velocityY;
+                                    b.vy = -b.vy;
                                 }
-
-                                hasBouncedThisFrame = true;
+                                bounced = true;
                             }
-                            processBrickHit(brick, col, row);
+                            hitBrick(brick, c, r);
                         }
                     }
                 }
@@ -661,210 +649,191 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function updateFallingItemsLogic() {
-        for (let index = 0; index < GameState.fallingItems.length; index++) {
-            const item = GameState.fallingItems[index];
-            item.positionY += 1.5;
+    function updateItems() {
+        for (let i = 0; i < state.items.length; i++) {
+            const it = state.items[i];
+            it.y += 1.5;
 
-            const isTouchingPaddleY = item.positionY + item.height / 2 > GameState.paddle.positionY && item.positionY - item.height / 2 < GameState.paddle.positionY + GameState.paddle.height;
-            const isTouchingPaddleX = item.positionX + item.width / 2 > GameState.paddle.positionX && item.positionX - item.width / 2 < GameState.paddle.positionX + GameState.paddle.width;
+            const hitY = it.y + it.h / 2 > state.paddle.y && it.y - it.h / 2 < state.paddle.y + state.paddle.h;
+            const hitX = it.x + it.w / 2 > state.paddle.x && it.x - it.w / 2 < state.paddle.x + state.paddle.w;
 
-            if (isTouchingPaddleY && isTouchingPaddleX) {
-                if (item.type === "expand") {
-                    GameState.paddle.width = Math.min(240, GameState.paddle.width + 30);
-                }
-                else if (item.type === "life") {
-                    if (GameState.currentLives < 5) {
-                        GameState.currentLives++;
-                        InterfaceElements.livesDisplay.textContent = GameState.currentLives;
+            if (hitY && hitX) {
+                if (it.type === "expand") {
+                    state.paddle.w = Math.min(240, state.paddle.w + 30);
+                } else if (it.type === "life") {
+                    if (state.lives < 5) {
+                        state.lives++;
+                        ui.lives.textContent = state.lives;
                     } else {
-                        GameState.currentScore += 50;
-                        InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
+                        state.score += 50;
+                        ui.score.textContent = state.score;
                     }
-                }
-                else if (item.type === "slow") {
-                    GameState.activeBalls.forEach(ball => {
-                        const actualSpeed = Math.hypot(ball.velocityX, ball.velocityY);
-                        if (actualSpeed > 2.5) {
-                            ball.velocityX *= 0.8;
-                            ball.velocityY *= 0.8;
+                } else if (it.type === "slow") {
+                    state.balls.forEach(b => {
+                        if (Math.hypot(b.vx, b.vy) > 2.5) {
+                            b.vx *= 0.8;
+                            b.vy *= 0.8;
                         }
                     });
-                }
-                else if (item.type === "split") {
-                    const newSplitBalls = [];
-                    GameState.activeBalls.forEach(ball => {
-                        const currentAngle = Math.atan2(ball.velocityY, ball.velocityX);
-                        const angleOffset1 = currentAngle + Math.PI / 6;
-                        const angleOffset2 = currentAngle - Math.PI / 6;
+                } else if (it.type === "split") {
+                    const newBalls = [];
+                    state.balls.forEach(b => {
+                        const a = Math.atan2(b.vy, b.vx);
+                        const a1 = a + Math.PI / 6;
+                        const a2 = a - Math.PI / 6;
 
-                        const ballOne = generateNewBallObject(ball.positionX, ball.positionY);
-                        ballOne.velocityX = ball.currentSpeed * Math.cos(angleOffset1);
-                        ballOne.velocityY = ball.currentSpeed * Math.sin(angleOffset1);
-                        ballOne.isFireball = ball.isFireball;
-                        setupBallElement(ballOne);
-                        newSplitBalls.push(ballOne);
+                        const b1 = newBall(b.x, b.y);
+                        b1.vx = b.speed * Math.cos(a1);
+                        b1.vy = b.speed * Math.sin(a1);
+                        b1.fireball = b.fireball;
+                        initBall(b1);
+                        newBalls.push(b1);
 
-                        const ballTwo = generateNewBallObject(ball.positionX, ball.positionY);
-                        ballTwo.velocityX = ball.currentSpeed * Math.cos(angleOffset2);
-                        ballTwo.velocityY = ball.currentSpeed * Math.sin(angleOffset2);
-                        ballTwo.isFireball = ball.isFireball;
-                        setupBallElement(ballTwo);
-                        newSplitBalls.push(ballTwo);
+                        const b2 = newBall(b.x, b.y);
+                        b2.vx = b.speed * Math.cos(a2);
+                        b2.vy = b.speed * Math.sin(a2);
+                        b2.fireball = b.fireball;
+                        initBall(b2);
+                        newBalls.push(b2);
                     });
-                    GameState.activeBalls = GameState.activeBalls.concat(newSplitBalls);
-                }
-                else if (item.type === "shoot") {
-                    const anglesToShoot = [-Math.PI / 2, -Math.PI / 2 - Math.PI / 6, -Math.PI / 2 + Math.PI / 6];
-                    anglesToShoot.forEach(angle => {
-                        const bulletBall = generateNewBallObject(GameState.paddle.positionX + GameState.paddle.width / 2, GameState.paddle.positionY - 10);
-                        bulletBall.velocityX = bulletBall.currentSpeed * Math.cos(angle);
-                        bulletBall.velocityY = bulletBall.currentSpeed * Math.sin(angle);
-                        setupBallElement(bulletBall);
-                        GameState.activeBalls.push(bulletBall);
+                    state.balls = state.balls.concat(newBalls);
+                } else if (it.type === "shoot") {
+                    [-Math.PI / 2, -Math.PI / 2 - Math.PI / 6, -Math.PI / 2 + Math.PI / 6].forEach(a => {
+                        const bullet = newBall(state.paddle.x + state.paddle.w / 2, state.paddle.y - 10);
+                        bullet.vx = bullet.speed * Math.cos(a);
+                        bullet.vy = bullet.speed * Math.sin(a);
+                        initBall(bullet);
+                        state.balls.push(bullet);
                     });
-                }
-                else if (item.type === "fireball") {
-                    GameState.paddle.hasFireballBuff = true;
-                }
-                else if (item.type === "shield") {
-                    GameState.shield.isActive = true;
-                    GameState.shield.remainingTime = 600;
+                } else if (it.type === "fireball") {
+                    state.paddle.fireball = true;
+                } else if (it.type === "shield") {
+                    state.shield.active = true;
+                    state.shield.time = 600;
                 }
 
-                playCollisionSound();
-                item.element.remove();
-                GameState.fallingItems.splice(index, 1);
-                index--;
-            }
-            else if (item.positionY - item.height / 2 > 750) {
-                item.element.remove();
-                GameState.fallingItems.splice(index, 1);
-                index--;
+                playSound();
+                it.el.remove();
+                state.items.splice(i, 1);
+                i--;
+            } else if (it.y - it.h / 2 > 750) {
+                it.el.remove();
+                state.items.splice(i, 1);
+                i--;
             }
         }
     }
 
-    function processMainGameLoop() {
-        if (!GameState.isGameRunning) return;
+    function update() {
+        if (!state.running) return;
 
-        if (GameState.shield.isActive) {
-            GameState.shield.remainingTime--;
-            if (GameState.shield.remainingTime <= 0) {
-                GameState.shield.isActive = false;
-            }
+        if (state.shield.active) {
+            state.shield.time--;
+            if (state.shield.time <= 0) state.shield.active = false;
         }
 
-        if (GameState.triggerCooldown > 0) {
-            GameState.triggerCooldown--;
-        }
+        if (state.cooldown > 0) state.cooldown--;
 
-        if (!GameState.isBallLaunched) {
-            if (GameState.activeBalls.length > 0) {
-                GameState.activeBalls[0].positionX = GameState.paddle.positionX + GameState.paddle.width / 2;
-                GameState.activeBalls[0].positionY = GameState.paddle.positionY - GameState.activeBalls[0].radius;
+        if (!state.launched) {
+            if (state.balls.length > 0) {
+                state.balls[0].x = state.paddle.x + state.paddle.w / 2;
+                state.balls[0].y = state.paddle.y - state.balls[0].r;
             }
         } else {
-            for (let i = GameState.activeBalls.length - 1; i >= 0; i--) {
-                const ball = GameState.activeBalls[i];
+            for (let i = state.balls.length - 1; i >= 0; i--) {
+                const b = state.balls[i];
 
-                function removeFireballState() {
-                    if (ball.isFireball) {
-                        ball.isFireball = false;
-                        ball.currentSpeed = GameState.baseBallSpeed;
-                        const currentDirectionAngle = Math.atan2(ball.velocityY, ball.velocityX);
-                        ball.velocityX = ball.currentSpeed * Math.cos(currentDirectionAngle);
-                        ball.velocityY = ball.currentSpeed * Math.sin(currentDirectionAngle);
+                function resetFireball() {
+                    if (b.fireball) {
+                        b.fireball = false;
+                        b.speed = state.ballSpeed;
+                        const a = Math.atan2(b.vy, b.vx);
+                        b.vx = b.speed * Math.cos(a);
+                        b.vy = b.speed * Math.sin(a);
                     }
                 }
 
-                if (ball.positionX - ball.radius <= 0) {
-                    ball.positionX = ball.radius;
-                    ball.velocityX = -ball.velocityX;
-                    playCollisionSound();
-                } else if (ball.positionX + ball.radius >= 600) {
-                    ball.positionX = 600 - ball.radius;
-                    ball.velocityX = -ball.velocityX;
-                    playCollisionSound();
+                if (b.x - b.r <= 0) {
+                    b.x = b.r;
+                    b.vx = -b.vx;
+                    playSound();
+                } else if (b.x + b.r >= 600) {
+                    b.x = 600 - b.r;
+                    b.vx = -b.vx;
+                    playSound();
                 }
 
-                const hitCeiling = ball.positionY + ball.velocityY < ball.radius;
-                if (hitCeiling) {
-                    ball.velocityY = -ball.velocityY;
-                    playCollisionSound();
-                    removeFireballState();
-                }
-                else if (ball.positionY + ball.velocityY > GameState.paddle.positionY - ball.radius) {
-                    const hitPaddleX = ball.positionX > GameState.paddle.positionX && ball.positionX < GameState.paddle.positionX + GameState.paddle.width;
+                if (b.y + b.vy < b.r) {
+                    b.vy = -b.vy;
+                    playSound();
+                    resetFireball();
+                } else if (b.y + b.vy > state.paddle.y - b.r) {
+                    const hitPaddle = b.x > state.paddle.x && b.x < state.paddle.x + state.paddle.w;
 
-                    if (hitPaddleX) {
-                        const relativeHitPoint = (ball.positionX - (GameState.paddle.positionX + GameState.paddle.width / 2)) / (GameState.paddle.width / 2);
-                        const maximumBounceAngle = Math.PI / 3;
-                        const finalBounceAngle = relativeHitPoint * maximumBounceAngle;
+                    if (hitPaddle) {
+                        const rel = (b.x - (state.paddle.x + state.paddle.w / 2)) / (state.paddle.w / 2);
+                        const angle = rel * (Math.PI / 3);
 
-                        if (GameState.paddle.hasFireballBuff && !ball.isFireball) {
-                            ball.isFireball = true;
-                            ball.currentSpeed = GameState.baseBallSpeed * 3;
-                            GameState.paddle.hasFireballBuff = false;
+                        if (state.paddle.fireball && !b.fireball) {
+                            b.fireball = true;
+                            b.speed = state.ballSpeed * 3;
+                            state.paddle.fireball = false;
                         }
 
-                        ball.velocityX = ball.currentSpeed * Math.sin(finalBounceAngle);
-                        ball.velocityY = -ball.currentSpeed * Math.cos(finalBounceAngle);
-                        playCollisionSound();
-                    }
-                    else if (ball.positionY + ball.velocityY > 750 - ball.radius) {
-                        if (GameState.shield.isActive) {
-                            ball.velocityY = -ball.velocityY;
-                            ball.positionY = 750 - ball.radius - 15;
-                            GameState.shield.isActive = false;
-                            playCollisionSound();
+                        b.vx = b.speed * Math.sin(angle);
+                        b.vy = -b.speed * Math.cos(angle);
+                        playSound();
+                    } else if (b.y + b.vy > 750 - b.r) {
+                        if (state.shield.active) {
+                            b.vy = -b.vy;
+                            b.y = 750 - b.r - 15;
+                            state.shield.active = false;
+                            playSound();
                         } else {
-                            ball.element.remove();
-                            GameState.activeBalls.splice(i, 1);
+                            b.el.remove();
+                            state.balls.splice(i, 1);
                         }
                     }
                 }
 
-                ball.positionX += ball.velocityX;
-                ball.positionY += ball.velocityY;
+                b.x += b.vx;
+                b.y += b.vy;
             }
 
-            if (GameState.activeBalls.length === 0) {
-                GameState.currentLives--;
-                InterfaceElements.livesDisplay.textContent = GameState.currentLives;
+            if (state.balls.length === 0) {
+                state.lives--;
+                ui.lives.textContent = state.lives;
 
-                if (GameState.currentLives <= 0) {
+                if (state.lives <= 0) {
                     localStorage.removeItem("BRICK_BREAKER_SAVE");
-                    updateContinueButtonState();
-                    switchToHomeMenuScreen();
+                    checkContinueBtn();
+                    goHome();
                     return;
                 } else {
-                    resetBallsToPaddle();
+                    resetBall();
                 }
             }
 
-            checkCollisionBetweenBallsAndBricks();
-            updateFallingItemsLogic();
+            checkCollisions();
+            updateItems();
 
-            if (GameState.currentLevel === 5) {
-                const healerBadge = document.getElementById("healerHudBadge");
-                const timerDisplay = document.getElementById("healerTimerDisplay");
-                if (healerBadge) healerBadge.classList.remove("d-none");
+            if (state.level === 5) {
+                const badge = document.getElementById("healerHudBadge");
+                const timer = document.getElementById("healerTimerDisplay");
+                if (badge) badge.classList.remove("d-none");
 
-                for (let c = 0; c < LevelConfig.columnCount; c++) {
-                    for (let r = 0; r < LevelConfig.rowCount; r++) {
-                        const core = GameState.activeBricks[c][r];
-                        if (core && core.isActive && core.isHealer) {
+                for (let c = 0; c < cfg.cols; c++) {
+                    for (let r = 0; r < cfg.rows; r++) {
+                        const core = state.bricks[c][r];
+                        if (core && core.active && core.isHealer) {
                             core.healTimer++;
-                            const remainingSeconds = Math.ceil((3600 - core.healTimer) / 60);
-                            if (timerDisplay) timerDisplay.textContent = Math.max(0, remainingSeconds);
+                            if (timer) timer.textContent = Math.max(0, Math.ceil((3600 - core.healTimer) / 60));
 
                             if (core.healTimer >= 3600) {
                                 core.healTimer = 0;
-
                                 if (core.hp < 2) {
                                     core.hp++;
-                                    core.element.style.backgroundColor = "#e84393";
+                                    core.el.style.backgroundColor = "#e84393";
                                 }
 
                                 for (let dc = -2; dc <= 2; dc++) {
@@ -873,13 +842,13 @@ document.addEventListener("DOMContentLoaded", () => {
                                         const nc = c + dc;
                                         const nr = r + dr;
 
-                                        if (nc >= 0 && nc < LevelConfig.columnCount && nr >= 0 && nr < LevelConfig.rowCount) {
-                                            const target = GameState.activeBricks[nc][nr];
-                                            if (target && target.isActive && !target.isHealer) {
+                                        if (nc >= 0 && nc < cfg.cols && nr >= 0 && nr < cfg.rows) {
+                                            const target = state.bricks[nc][nr];
+                                            if (target && target.active && !target.isHealer) {
                                                 if (target.hp < 3) {
                                                     target.hp++;
-                                                    const Level2Colors = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
-                                                    target.element.style.backgroundColor = Level2Colors[target.hp] || "#1e90ff";
+                                                    const l2Cols = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
+                                                    target.el.style.backgroundColor = l2Cols[target.hp] || "#1e90ff";
                                                 }
                                             }
                                         }
@@ -890,400 +859,383 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
             } else {
-                const healerBadge = document.getElementById("healerHudBadge");
-                if (healerBadge) healerBadge.classList.add("d-none");
+                const badge = document.getElementById("healerHudBadge");
+                if (badge) badge.classList.add("d-none");
             }
 
-            if (GameState.currentLevel === 6) {
-                const bossBadge = document.getElementById("bossHudBadge");
-                const bossHpDisplay = document.getElementById("bossHpDisplay");
-                if (bossBadge) bossBadge.classList.remove("d-none");
+            if (state.level === 6) {
+                const badge = document.getElementById("bossHudBadge");
+                const bossHp = document.getElementById("bossHpDisplay");
+                if (badge) badge.classList.remove("d-none");
 
-                let bossX = 300;
-                let bossY = 100;
-                let bossAlive = false;
+                let bX = 300, bY = 100, bAlive = false;
 
-                for (let c = 0; c < LevelConfig.columnCount; c++) {
-                    for (let r = 0; r < LevelConfig.rowCount; r++) {
-                        const b = GameState.activeBricks[c][r];
-                        if (b && b.isActive && b.isBoss) {
-                            bossAlive = true;
-                            bossX = b.positionX + (b.width || LevelConfig.brickWidth) / 2;
-                            bossY = b.positionY + (b.height || LevelConfig.brickHeight);
-                            if (bossHpDisplay) bossHpDisplay.textContent = b.hp;
+                for (let c = 0; c < cfg.cols; c++) {
+                    for (let r = 0; r < cfg.rows; r++) {
+                        const b = state.bricks[c][r];
+                        if (b && b.active && b.isBoss) {
+                            bAlive = true;
+                            bX = b.x + (b.w || cfg.bW) / 2;
+                            bY = b.y + (b.h || cfg.bH);
+                            if (bossHp) bossHp.textContent = b.hp;
                         }
                     }
                 }
 
-                if (bossAlive) {
-                    GameState.bossAttackTimer++;
-                    if (GameState.bossAttackTimer >= 300) {
-                        GameState.bossAttackTimer = 0;
+                if (bAlive) {
+                    state.bossTimer++;
+                    if (state.bossTimer >= 300) {
+                        state.bossTimer = 0;
 
-                        const bulletEl = createHtmlElement("div", {
+                        const bullet = createEl("div", {
                             width: "8px",
                             height: "16px",
                             backgroundColor: "#ff4757",
                             borderRadius: "4px",
                             boxShadow: "0 0 8px #ff4757"
                         });
-                        InterfaceElements.playArea.appendChild(bulletEl);
+                        ui.playArea.appendChild(bullet);
 
-                        GameState.bossProjectiles.push({
-                            positionX: bossX,
-                            positionY: bossY,
-                            speedY: 2.0,
-                            element: bulletEl
-                        });
+                        state.bullets.push({ x: bX, y: bY, vy: 2.0, el: bullet });
                     }
                 }
 
-                for (let i = GameState.bossProjectiles.length - 1; i >= 0; i--) {
-                    const p = GameState.bossProjectiles[i];
-                    p.positionY += p.speedY;
-                    p.element.style.transform = `translate(${p.positionX - 4}px, ${p.positionY}px)`;
+                for (let i = state.bullets.length - 1; i >= 0; i--) {
+                    const p = state.bullets[i];
+                    p.y += p.vy;
+                    p.el.style.transform = `translate(${p.x - 4}px, ${p.y}px)`;
 
-                    const bulletWidth = 8;
-                    const bulletHeight = 16;
-                    const hitPaddleY = p.positionY + bulletHeight >= GameState.paddle.positionY && p.positionY <= GameState.paddle.positionY + GameState.paddle.height;
-                    const hitPaddleX = p.positionX + bulletWidth >= GameState.paddle.positionX && p.positionX <= GameState.paddle.positionX + GameState.paddle.width;
+                    const hitY = p.y + 16 >= state.paddle.y && p.y <= state.paddle.y + state.paddle.h;
+                    const hitX = p.x + 8 >= state.paddle.x && p.x <= state.paddle.x + state.paddle.w;
 
-                    if (hitPaddleY && hitPaddleX) {
-                        p.element.remove();
-                        GameState.bossProjectiles.splice(i, 1);
+                    if (hitY && hitX) {
+                        p.el.remove();
+                        state.bullets.splice(i, 1);
 
-                        if (!GameState.shield.isActive) {
-                            GameState.currentLives--;
-                            InterfaceElements.livesDisplay.textContent = GameState.currentLives;
-                            playCollisionSound();
+                        if (!state.shield.active) {
+                            state.lives--;
+                            ui.lives.textContent = state.lives;
+                            playSound();
 
-                            if (GameState.currentLives <= 0) {
+                            if (state.lives <= 0) {
                                 localStorage.removeItem("BRICK_BREAKER_SAVE");
-                                updateContinueButtonState();
-                                switchToHomeMenuScreen();
+                                checkContinueBtn();
+                                goHome();
                                 return;
                             }
                         } else {
-                            GameState.shield.isActive = false;
+                            state.shield.active = false;
                         }
-                    } else if (p.positionY > 750) {
-                        p.element.remove();
-                        GameState.bossProjectiles.splice(i, 1);
+                    } else if (p.y > 750) {
+                        p.el.remove();
+                        state.bullets.splice(i, 1);
                     }
                 }
             } else {
-                const bossBadge = document.getElementById("bossHudBadge");
-                if (bossBadge) bossBadge.classList.add("d-none");
+                const badge = document.getElementById("bossHudBadge");
+                if (badge) badge.classList.add("d-none");
 
-                GameState.bossProjectiles.forEach(p => p.element.remove());
-                GameState.bossProjectiles = [];
+                state.bullets.forEach(p => p.el.remove());
+                state.bullets = [];
             }
         }
 
-        if (GameState.controls.moveRight && GameState.paddle.positionX < 600 - GameState.paddle.width) {
-            GameState.paddle.positionX += GameState.paddle.moveSpeed;
-            if (!GameState.isBallLaunched && GameState.activeBalls.length > 0) {
-                GameState.activeBalls[0].positionX = GameState.paddle.positionX + GameState.paddle.width / 2;
+        if (state.keys.right && state.paddle.x < 600 - state.paddle.w) {
+            state.paddle.x += state.paddle.speed;
+            if (!state.launched && state.balls.length > 0) {
+                state.balls[0].x = state.paddle.x + state.paddle.w / 2;
             }
-        }
-        else if (GameState.controls.moveLeft && GameState.paddle.positionX > 0) {
-            GameState.paddle.positionX -= GameState.paddle.moveSpeed;
-            if (!GameState.isBallLaunched && GameState.activeBalls.length > 0) {
-                GameState.activeBalls[0].positionX = GameState.paddle.positionX + GameState.paddle.width / 2;
+        } else if (state.keys.left && state.paddle.x > 0) {
+            state.paddle.x -= state.paddle.speed;
+            if (!state.launched && state.balls.length > 0) {
+                state.balls[0].x = state.paddle.x + state.paddle.w / 2;
             }
         }
 
-        renderGraphicsToScreen();
+        draw();
 
-        if (GameState.isGameRunning) {
-            GameState.animationFrameId = requestAnimationFrame(processMainGameLoop);
+        if (state.running) {
+            state.animId = requestAnimationFrame(update);
         }
     }
 
-    function expandGameplayContainer() {
-        InterfaceElements.mainHeader.classList.add("d-none");
-        InterfaceElements.homeActions.classList.add("d-none");
-        InterfaceElements.homeActions.classList.remove("d-flex");
-        InterfaceElements.levelSelectArea.classList.add("d-none");
-        InterfaceElements.levelSelectArea.classList.remove("d-flex");
-        InterfaceElements.homeOverlay.classList.add("d-none");
-        InterfaceElements.homeOverlay.classList.remove("d-flex");
-        InterfaceElements.screenWrapper.classList.add("playing-size");
-        InterfaceElements.gameHud.classList.remove("d-none");
-        InterfaceElements.gameHud.classList.add("d-flex");
-    }
+    function expandGameUI() {
+        ui.mainHeader.classList.add("d-none");
+        ui.homeActions.classList.add("d-none");
+        ui.homeActions.classList.remove("d-flex");
+        ui.levelSelectArea.classList.add("d-none");
+        ui.levelSelectArea.classList.remove("d-flex");
+        ui.homeOverlay.classList.add("d-none");
+        ui.homeOverlay.classList.remove("d-flex");
+        ui.screenWrapper.classList.add("playing-size");
+        ui.gameHud.classList.remove("d-none");
+        ui.gameHud.classList.add("d-flex");
 
-    function switchToHomeMenuScreen() {
-        GameState.isGameRunning = false;
-        cancelAnimationFrame(GameState.animationFrameId);
-
-        InterfaceElements.screenWrapper.classList.remove("playing-size");
-        InterfaceElements.gameHud.classList.add("d-none");
-        InterfaceElements.gameHud.classList.remove("d-flex");
-        InterfaceElements.launchHintOverlay.classList.add("d-none");
-        InterfaceElements.launchHintOverlay.classList.remove("d-flex");
-        InterfaceElements.tutorialOverlay.classList.add("d-none");
-        InterfaceElements.tutorialOverlay.classList.remove("d-flex");
-        InterfaceElements.pauseOverlay.classList.add("d-none");
-        InterfaceElements.pauseOverlay.classList.remove("d-flex");
-        InterfaceElements.victoryOverlay.classList.add("d-none");
-        InterfaceElements.victoryOverlay.classList.remove("d-flex");
-        InterfaceElements.mainHeader.classList.remove("d-none");
-        InterfaceElements.homeActions.classList.remove("d-none");
-        InterfaceElements.homeActions.classList.add("d-flex");
-        InterfaceElements.levelSelectArea.classList.add("d-none");
-        InterfaceElements.homeOverlay.classList.remove("d-none");
-        InterfaceElements.homeOverlay.classList.add("d-flex");
-
-        buildLevelBricks();
-        resetBallsToPaddle();
-        renderGraphicsToScreen();
-        updateContinueButtonState();
-    }
-
-    function loadSelectedLevelToScreen(levelNumber) {
-        GameState.currentLevel = levelNumber;
-        GameState.currentScore = 0;
-        GameState.currentLives = 3;
-        InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
-        InterfaceElements.livesDisplay.textContent = GameState.currentLives;
-
-        if (InterfaceElements.levelDisplay) {
-            InterfaceElements.levelDisplay.textContent = `MÀN ${GameState.currentLevel}`;
+        if (ui.leftSidebar) {
+            ui.leftSidebar.classList.remove("d-none");
+            ui.leftSidebar.classList.add("d-flex");
         }
+        if (ui.rightSidebar) {
+            ui.rightSidebar.classList.remove("d-none");
+            ui.rightSidebar.classList.add("d-flex");
+        }
+    }
 
-        const tutorialData = {
-            1: {
-                title: "MÀN 1: GẠCH CƠ BẢN",
-                desc: "👉 Khối gạch vỡ sau 1 chạm.<br>🕹️ Điều khiển: Chuột hoặc phím mũi tên.<br>🖱️ Khởi động: Nhấn chuột trái."
-            },
-            2: {
-                title: "MÀN 2: GẠCH NHIỀU MÁU",
-                desc: "👉 Có những khối gạch cứng cần đập nhiều lần mới vỡ.<br>⚠️ Hãy chú ý màu sắc để biết độ bền của gạch."
-            },
-            3: {
-                title: "MÀN 3: GẠCH THANH CHẮN",
-                desc: "👉 Xuất hiện các thanh chắn kim loại vĩnh cửu không thể bị phá vỡ.<br>⚠️ Bạn phải khéo léo lách bóng qua các khe hở."
-            },
-            4: {
-                title: "MÀN 4: GẠCH BỊ ẨN",
-                desc: "👉 Một số khối gạch tàng hình và chỉ lộ diện khi bóng chạm vào khối nút chỉ định.<br>⚠ Nếu chạm nút lần nữa, gạch sẽ tàng hình lại."
-            },
-            5: {
-                title: "MÀN 5: GẠCH HỒI PHỤC",
-                desc: "👉 Có 3 quả cầu đặc biệt. Lõi ở giữa sẽ bơm máu cho gạch xung quanh mỗi 60s.<br>⚠️ Gạch đã vỡ sẽ không thể mọc lại, hãy ưu tiên tiêu diệt lõi."
-            },
-            6: {
-                title: "MÀN 6: GẠCH BOSS",
-                desc: "👉 Đối đầu với trùm cuối. Khối gạch khổng lồ có lượng máu lớn và tự động bắn đạn tấn công.<br>⚠ Hãy né tránh và tiêu diệt trùm!"
-            }
+    function goHome() {
+        state.running = false;
+        cancelAnimationFrame(state.animId);
+
+        ui.screenWrapper.classList.remove("playing-size");
+        ui.gameHud.classList.add("d-none");
+        ui.gameHud.classList.remove("d-flex");
+        ui.launchHintOverlay.classList.add("d-none");
+        ui.launchHintOverlay.classList.remove("d-flex");
+        ui.tutorialOverlay.classList.add("d-none");
+        ui.tutorialOverlay.classList.remove("d-flex");
+        ui.pauseOverlay.classList.add("d-none");
+        ui.pauseOverlay.classList.remove("d-flex");
+        ui.victoryOverlay.classList.add("d-none");
+        ui.victoryOverlay.classList.remove("d-flex");
+        ui.mainHeader.classList.remove("d-none");
+        ui.homeActions.classList.remove("d-none");
+        ui.homeActions.classList.add("d-flex");
+        ui.levelSelectArea.classList.add("d-none");
+        ui.homeOverlay.classList.remove("d-none");
+        ui.homeOverlay.classList.add("d-flex");
+
+        if (ui.leftSidebar) {
+            ui.leftSidebar.classList.add("d-none");
+            ui.leftSidebar.classList.remove("d-flex");
+        }
+        if (ui.rightSidebar) {
+            ui.rightSidebar.classList.add("d-none");
+            ui.rightSidebar.classList.remove("d-flex");
+        }
+        if (ui.leftSidebar) ui.leftSidebar.classList.remove("d-none");
+        if (ui.rightSidebar) ui.rightSidebar.classList.remove("d-none");
+
+        initLevel();
+        resetBall();
+        draw();
+        checkContinueBtn();
+    }
+
+    function loadLevel(lvl, keepScore = false) {
+        state.level = lvl;
+        if (!keepScore) state.score = 0;
+        state.lives = 3;
+        ui.score.textContent = state.score;
+        ui.lives.textContent = state.lives;
+
+        if (ui.level) ui.level.textContent = `MÀN ${state.level}`;
+
+        const tutorials = {
+            1: { title: "MÀN 1: GẠCH CƠ BẢN", desc: "👉 Khối gạch vỡ sau 1 chạm.<br>🕹️ Điều khiển: Chuột hoặc phím mũi tên.<br>🖱️ Khởi động: Nhấn chuột trái." },
+            2: { title: "MÀN 2: GẠCH NHIỀU MÁU", desc: "👉 Có những khối gạch cứng cần đập nhiều lần mới vỡ.<br>⚠️ Hãy chú ý màu sắc để biết độ bền của gạch." },
+            3: { title: "MÀN 3: GẠCH THANH CHẮN", desc: "👉 Xuất hiện các thanh chắn kim loại vĩnh cửu không thể bị phá vỡ.<br>⚠️ Bạn phải khéo léo lách bóng qua các khe hở." },
+            4: { title: "MÀN 4: GẠCH BỊ ẨN", desc: "👉 Một số khối gạch tàng hình và chỉ lộ diện khi bóng chạm vào khối nút chỉ định.<br>⚠ Nếu chạm nút lần nữa, gạch sẽ tàng hình lại." },
+            5: { title: "MÀN 5: GẠCH HỒI PHỤC", desc: "👉 Có 3 quả cầu đặc biệt. Lõi ở giữa sẽ bơm máu cho gạch xung quanh mỗi 60s.<br>⚠️ Gạch đã vỡ sẽ không thể mọc lại, hãy ưu tiên tiêu diệt lõi." },
+            6: { title: "MÀN 6: GẠCH BOSS", desc: "👉 Đối đầu với trùm cuối. Khối gạch khổng lồ có lượng máu lớn và tự động bắn đạn tấn công.<br>⚠ Hãy né tránh và tiêu diệt trùm!" }
         };
 
-        const activeTutorial = tutorialData[levelNumber] || tutorialData[1];
-        const titleElement = document.getElementById("tutorialTitle");
-        const descriptionElement = document.getElementById("tutorialDesc");
+        const currentTut = tutorials[lvl] || tutorials[1];
+        const titleEl = document.getElementById("tutorialTitle");
+        const descEl = document.getElementById("tutorialDesc");
 
-        if (titleElement) titleElement.textContent = activeTutorial.title;
-        if (descriptionElement) descriptionElement.innerHTML = activeTutorial.desc;
+        if (titleEl) titleEl.textContent = currentTut.title;
+        if (descEl) descEl.innerHTML = currentTut.desc;
 
-        GameState.paddle.positionX = 240;
-        buildLevelBricks();
-        resetBallsToPaddle();
-        renderGraphicsToScreen();
-        expandGameplayContainer();
+        state.paddle.x = 240;
+        initLevel();
+        resetBall();
+        draw();
+        expandGameUI();
 
-        InterfaceElements.victoryOverlay.classList.add("d-none");
-        InterfaceElements.victoryOverlay.classList.remove("d-flex");
-        InterfaceElements.tutorialOverlay.classList.remove("d-none");
-        InterfaceElements.tutorialOverlay.classList.add("d-flex");
+        ui.victoryOverlay.classList.add("d-none");
+        ui.victoryOverlay.classList.remove("d-flex");
+        ui.tutorialOverlay.classList.remove("d-none");
+        ui.tutorialOverlay.classList.add("d-flex");
     }
 
-    function saveCurrentProgressToStorage() {
-        if (!GameState.activeBricks || GameState.totalBricksToBreak <= 0) return;
+    function saveGame() {
+        if (!state.bricks || state.bricksLeft <= 0) return;
 
-        const brickMatrixForSave = [];
-        for (let col = 0; col < LevelConfig.columnCount; col++) {
-            brickMatrixForSave[col] = [];
-            for (let row = 0; row < LevelConfig.rowCount; row++) {
-                let sv = 0;
-                const b = GameState.activeBricks[col][row];
-                if (b && b.isActive) {
-                    if (b.isTrigger) {
-                        sv = b.isTriggerOn ? -2 : -3;
-                    } else if (b.isUnbreakable) {
-                        sv = -1;
+        const matrix = [];
+        for (let c = 0; c < cfg.cols; c++) {
+            matrix[c] = [];
+            for (let r = 0; r < cfg.rows; r++) {
+                let val = 0;
+                const b = state.bricks[c][r];
+                if (b && b.active) {
+                    if (b.isT) {
+                        val = b.isTOn ? -2 : -3;
+                    } else if (b.isU) {
+                        val = -1;
                     } else if (b.isBoss) {
-                        sv = b.hp;
+                        val = b.hp;
                     } else {
-                        sv = b.hp;
-                        if (b.isHidden) sv += 100;
+                        val = b.hp;
+                        if (b.isH) val += 100;
                     }
                 }
-                brickMatrixForSave[col][row] = sv;
+                matrix[c][r] = val;
             }
         }
 
-        const dataToSave = {
-            level: GameState.currentLevel,
-            score: GameState.currentScore,
-            lives: GameState.currentLives,
-            paddleX: GameState.paddle.positionX,
+        const data = {
+            level: state.level,
+            score: state.score,
+            lives: state.lives,
+            paddleX: state.paddle.x,
             paddleY: 705,
-            isLaunched: GameState.isBallLaunched,
-            savedBalls: GameState.activeBalls.map(ball => ({
-                posX: ball.positionX > 0 ? ball.positionX : GameState.paddle.positionX + 60,
-                posY: ball.positionY > 0 ? ball.positionY : 690,
-                velX: ball.velocityX,
-                velY: ball.velocityY,
-                speed: ball.currentSpeed,
-                isRed: ball.isFireball
+            isLaunched: state.launched,
+            savedBalls: state.balls.map(b => ({
+                posX: b.x > 0 ? b.x : state.paddle.x + 60,
+                posY: b.y > 0 ? b.y : 690,
+                velX: b.vx,
+                velY: b.vy,
+                speed: b.speed,
+                isRed: b.fireball
             })),
-            brickMatrix: brickMatrixForSave
+            brickMatrix: matrix
         };
-        localStorage.setItem("BRICK_BREAKER_SAVE", JSON.stringify(dataToSave));
-        updateContinueButtonState();
+        localStorage.setItem("BRICK_BREAKER_SAVE", JSON.stringify(data));
+        checkContinueBtn();
     }
 
-    function updateContinueButtonState() {
-        if (!Buttons.continueGame) return;
-
-        const savedData = localStorage.getItem("BRICK_BREAKER_SAVE");
-        if (savedData && savedData !== "undefined" && savedData !== "null") {
-            Buttons.continueGame.removeAttribute("disabled");
-            Buttons.continueGame.classList.remove("disabled");
-            Buttons.continueGame.style.opacity = "1";
-            Buttons.continueGame.style.pointerEvents = "auto";
+    function checkContinueBtn() {
+        if (!btn.continueGame) return;
+        const saved = localStorage.getItem("BRICK_BREAKER_SAVE");
+        if (saved && saved !== "undefined" && saved !== "null") {
+            btn.continueGame.removeAttribute("disabled");
+            btn.continueGame.classList.remove("disabled");
+            btn.continueGame.style.opacity = "1";
+            btn.continueGame.style.pointerEvents = "auto";
         } else {
-            Buttons.continueGame.setAttribute("disabled", "true");
-            Buttons.continueGame.classList.add("disabled");
-            Buttons.continueGame.style.opacity = "0.5";
-            Buttons.continueGame.style.pointerEvents = "none";
+            btn.continueGame.setAttribute("disabled", "true");
+            btn.continueGame.classList.add("disabled");
+            btn.continueGame.style.opacity = "0.5";
+            btn.continueGame.style.pointerEvents = "none";
         }
     }
 
-    updateContinueButtonState();
+    checkContinueBtn();
 
-    let callbackForReset = null;
-    let modalInstanceForConfirm = null;
-    const confirmModalNode = document.getElementById("confirmResetModal");
-    if (confirmModalNode && typeof bootstrap !== "undefined") {
-        modalInstanceForConfirm = new bootstrap.Modal(confirmModalNode);
+    let resetCallback = null;
+    let modalInstance = null;
+    const confirmNode = document.getElementById("confirmResetModal");
+    if (confirmNode && typeof bootstrap !== "undefined") {
+        modalInstance = new bootstrap.Modal(confirmNode);
     }
 
-    function showWarningBeforeExecute(actionToRun) {
+    function confirmAction(action) {
         if (localStorage.getItem("BRICK_BREAKER_SAVE")) {
-            callbackForReset = actionToRun;
-            if (modalInstanceForConfirm) {
-                modalInstanceForConfirm.show();
+            resetCallback = action;
+            if (modalInstance) {
+                modalInstance.show();
             } else if (confirm("Tiến trình sẽ bị xóa. Bạn có muốn tiếp tục?")) {
-                actionToRun();
+                action();
             }
         } else {
-            actionToRun();
+            action();
         }
     }
 
-    Buttons.newGame.addEventListener("click", () => {
-        initializeAudioSystem();
-        showWarningBeforeExecute(() => {
+    btn.newGame.addEventListener("click", () => {
+        initAudio();
+        confirmAction(() => {
             localStorage.removeItem("BRICK_BREAKER_SAVE");
-            updateContinueButtonState();
-            InterfaceElements.homeActions.classList.add("d-none");
-            InterfaceElements.homeActions.classList.remove("d-flex");
-            InterfaceElements.levelSelectArea.classList.remove("d-none");
-            InterfaceElements.levelSelectArea.classList.add("d-flex");
+            checkContinueBtn();
+            ui.homeActions.classList.add("d-none");
+            ui.homeActions.classList.remove("d-flex");
+            ui.levelSelectArea.classList.remove("d-none");
+            ui.levelSelectArea.classList.add("d-flex");
         });
     });
 
-    Buttons.backToHome.addEventListener("click", () => {
-        InterfaceElements.levelSelectArea.classList.add("d-none");
-        InterfaceElements.levelSelectArea.classList.remove("d-flex");
-        InterfaceElements.homeActions.classList.remove("d-none");
-        InterfaceElements.homeActions.classList.add("d-flex");
+    btn.backHome.addEventListener("click", () => {
+        ui.levelSelectArea.classList.add("d-none");
+        ui.levelSelectArea.classList.remove("d-flex");
+        ui.homeActions.classList.remove("d-none");
+        ui.homeActions.classList.add("d-flex");
     });
 
-    document.querySelectorAll('.btn-level').forEach(buttonNode => {
-        buttonNode.addEventListener("click", (event) => {
-            const levelValue = parseInt(event.currentTarget.getAttribute("data-level"));
-            loadSelectedLevelToScreen(levelValue);
+    document.querySelectorAll('.btn-level').forEach(node => {
+        node.addEventListener("click", (e) => {
+            loadLevel(parseInt(e.currentTarget.getAttribute("data-level")));
         });
     });
 
-    Buttons.startGameplay.addEventListener("click", () => {
-        InterfaceElements.tutorialOverlay.classList.add("d-none");
-        InterfaceElements.tutorialOverlay.classList.remove("d-flex");
-        GameState.isGameRunning = true;
-        resetBallsToPaddle();
-        processMainGameLoop();
+    btn.startGame.addEventListener("click", () => {
+        ui.tutorialOverlay.classList.add("d-none");
+        ui.tutorialOverlay.classList.remove("d-flex");
+        state.running = true;
+        resetBall();
+        update();
     });
 
-    Buttons.continueGame.addEventListener("click", () => {
-        initializeAudioSystem();
-        const rawSavedString = localStorage.getItem("BRICK_BREAKER_SAVE");
-        if (!rawSavedString) return;
+    btn.continueGame.addEventListener("click", () => {
+        initAudio();
+        const raw = localStorage.getItem("BRICK_BREAKER_SAVE");
+        if (!raw) return;
 
-        const parsedData = JSON.parse(rawSavedString);
-        GameState.currentLevel = parsedData.level || 1;
-        if (InterfaceElements.levelDisplay) {
-            InterfaceElements.levelDisplay.textContent = `MÀN ${GameState.currentLevel}`;
-        }
+        const data = JSON.parse(raw);
+        state.level = data.level || 1;
+        if (ui.level) ui.level.textContent = `MÀN ${state.level}`;
 
-        expandGameplayContainer();
-        GameState.currentScore = parsedData.score;
-        GameState.currentLives = parsedData.lives;
-        GameState.paddle.positionX = parsedData.paddleX;
-        GameState.paddle.positionY = 705;
-        GameState.isBallLaunched = parsedData.isLaunched;
+        expandGameUI();
+        state.score = data.score;
+        state.lives = data.lives;
+        state.paddle.x = data.paddleX;
+        state.paddle.y = 705;
+        state.launched = data.isLaunched;
 
-        clearEntirePlayArea();
-        setupPaddleElement();
-        setupShieldElement();
-        GameState.activeBalls = [];
-        GameState.fallingItems = [];
-        GameState.bossProjectiles = [];
-        GameState.bossAttackTimer = 0;
-        GameState.shield.isActive = false;
-        GameState.paddle.hasFireballBuff = false;
-        GameState.paddle.width = 120;
+        clearArea();
+        initPaddle();
+        initShield();
+        state.balls = [];
+        state.items = [];
+        state.bullets = [];
+        state.bossTimer = 0;
+        state.shield.active = false;
+        state.paddle.fireball = false;
+        state.paddle.w = 120;
 
-        parsedData.savedBalls.forEach(savedBall => {
-            const recreatedBall = generateNewBallObject(
-                savedBall.posX > 0 ? savedBall.posX : GameState.paddle.positionX + 60,
-                savedBall.posY > 0 ? savedBall.posY : 690
-            );
-            recreatedBall.velocityX = savedBall.velX;
-            recreatedBall.velocityY = savedBall.velY;
-            recreatedBall.currentSpeed = savedBall.speed;
-            recreatedBall.isFireball = savedBall.isRed;
-            setupBallElement(recreatedBall);
-            GameState.activeBalls.push(recreatedBall);
+        data.savedBalls.forEach(sb => {
+            const b = newBall(sb.posX > 0 ? sb.posX : state.paddle.x + 60, sb.posY > 0 ? sb.posY : 690);
+            b.vx = sb.velX;
+            b.vy = sb.velY;
+            b.speed = sb.speed;
+            b.fireball = sb.isRed;
+            initBall(b);
+            state.balls.push(b);
         });
 
-        let hasValidBricks = false;
-        if (parsedData.brickMatrix) {
-            for (let c = 0; c < LevelConfig.columnCount; c++) {
-                for (let r = 0; r < LevelConfig.rowCount; r++) {
-                    if (parsedData.brickMatrix[c] && parsedData.brickMatrix[c][r] !== 0) {
-                        hasValidBricks = true;
+        let hasValid = false;
+        if (data.brickMatrix) {
+            for (let c = 0; c < cfg.cols; c++) {
+                for (let r = 0; r < cfg.rows; r++) {
+                    if (data.brickMatrix[c] && data.brickMatrix[c][r] !== 0) {
+                        hasValid = true;
                         break;
                     }
                 }
-                if (hasValidBricks) break;
+                if (hasValid) break;
             }
         }
 
-        if (!hasValidBricks) {
-            buildLevelBricks();
-            resetBallsToPaddle();
+        if (!hasValid) {
+            initLevel();
+            resetBall();
         } else {
-            GameState.activeBricks = [];
-            GameState.totalBricksToBreak = 0;
+            state.bricks = [];
+            state.bricksLeft = 0;
 
-            for (let col = 0; col < LevelConfig.columnCount; col++) {
-                GameState.activeBricks[col] = [];
-                for (let row = 0; row < LevelConfig.rowCount; row++) {
-                    const sv = parsedData.brickMatrix[col][row];
-                    let hp = sv;
+            for (let c = 0; c < cfg.cols; c++) {
+                state.bricks[c] = [];
+                for (let r = 0; r < cfg.rows; r++) {
+                    const val = data.brickMatrix[c][r];
+                    let hp = val;
                     let isU = false;
                     let isH = false;
                     let isHideable = false;
@@ -1291,49 +1243,46 @@ document.addEventListener("DOMContentLoaded", () => {
                     let isTOn = false;
                     let isHealer = false;
                     let isBoss = false;
-                    let isActive = sv !== 0;
-                    let c = LevelConfig.colors[row % LevelConfig.colors.length];
+                    let active = val !== 0;
+                    let col = cfg.colors[r % cfg.colors.length];
 
-                    if (GameState.currentLevel === 1) {
-                        c = "#00f2fe";
-                    } else if (GameState.currentLevel === 2 || GameState.currentLevel === 5) {
-                        const L2 = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
-                        c = L2[hp] || "#1e90ff";
-                    } else if (GameState.currentLevel === 4) {
+                    if (state.level === 1) {
+                        col = "#00f2fe";
+                    } else if (state.level === 2 || state.level === 5) {
+                        const l2Cols = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
+                        col = l2Cols[hp] || "#1e90ff";
+                    } else if (state.level === 4) {
                         isHideable = true;
-                        c = "#1dd1a1";
-                    } else if (GameState.currentLevel === 6) {
-                        if (row === 3 && col === 7) {
+                        col = "#1dd1a1";
+                    } else if (state.level === 6) {
+                        if (r === 3 && c === 6) {
                             isBoss = true;
-                            c = "#1a1a2e";
+                            col = "#1a1a2e";
                         }
                     }
 
-                    if (GameState.currentLevel === 5) {
+                    if (state.level === 5) {
                         const centers = [[3, 3], [3, 11], [8, 7]];
                         for (let i = 0; i < centers.length; i++) {
                             const cr = centers[i][0];
                             const cc = centers[i][1];
-                            const dr = Math.abs(row - cr);
-                            const dc = Math.abs(col - cc);
-
-                            if (dr === 0 && dc === 0) {
+                            if (Math.abs(r - cr) === 0 && Math.abs(c - cc) === 0) {
                                 isHealer = true;
-                                c = (hp === 2) ? "#e84393" : "#fd79a8";
+                                col = (hp === 2) ? "#e84393" : "#fd79a8";
                             }
                         }
                     }
 
-                    if (sv !== 0) {
+                    if (val !== 0) {
                         if (hp === -1) {
                             isU = true;
-                            c = "#7f8c8d";
+                            col = "#7f8c8d";
                         } else if (hp === -2 || hp === -3) {
                             isU = true;
                             isT = true;
                             isTOn = (hp === -2);
                             hp = -1;
-                            c = isTOn ? "#ff9f43" : "#d35400";
+                            col = isTOn ? "#ff9f43" : "#d35400";
                         } else {
                             if (hp >= 100) {
                                 isH = true;
@@ -1341,132 +1290,121 @@ document.addEventListener("DOMContentLoaded", () => {
                             }
                         }
 
-                        GameState.activeBricks[col][row] = instantiateBrickNode(col, row, hp, isU, isH, isHideable, isT, isTOn, isHealer, isBoss, c);
+                        state.bricks[c][r] = createBrick(c, r, hp, isU, isH, isHideable, isT, isTOn, isHealer, isBoss, col);
 
-                        if (isActive && !isU && !isBoss) {
-                            GameState.totalBricksToBreak++;
+                        if (active && !isU && !isBoss) {
+                            state.bricksLeft++;
                         }
                     } else {
-                        GameState.activeBricks[col][row] = { isActive: false };
+                        state.bricks[c][r] = { active: false };
                     }
                 }
             }
         }
 
-        InterfaceElements.scoreDisplay.textContent = GameState.currentScore;
-        InterfaceElements.livesDisplay.textContent = GameState.currentLives;
+        ui.score.textContent = state.score;
+        ui.lives.textContent = state.lives;
 
-        if (!GameState.isBallLaunched) {
-            InterfaceElements.launchHintOverlay.classList.remove("d-none");
-            InterfaceElements.launchHintOverlay.classList.add("d-flex");
+        if (!state.launched) {
+            ui.launchHintOverlay.classList.remove("d-none");
+            ui.launchHintOverlay.classList.add("d-flex");
         }
 
-        renderGraphicsToScreen();
-        GameState.isGameRunning = true;
-        processMainGameLoop();
+        draw();
+        state.running = true;
+        update();
     });
 
-    Buttons.gameMenu.addEventListener("click", () => {
-        GameState.isGameRunning = false;
-        cancelAnimationFrame(GameState.animationFrameId);
-        InterfaceElements.launchHintOverlay.classList.add("d-none");
-        InterfaceElements.launchHintOverlay.classList.remove("d-flex");
-        InterfaceElements.pauseOverlay.classList.remove("d-none");
-        InterfaceElements.pauseOverlay.classList.add("d-flex");
+    btn.menu.addEventListener("click", () => {
+        state.running = false;
+        cancelAnimationFrame(state.animId);
+        ui.launchHintOverlay.classList.add("d-none");
+        ui.launchHintOverlay.classList.remove("d-flex");
+        ui.pauseOverlay.classList.remove("d-none");
+        ui.pauseOverlay.classList.add("d-flex");
     });
 
-    Buttons.resumeGame.addEventListener("click", () => {
-        InterfaceElements.pauseOverlay.classList.add("d-none");
-        InterfaceElements.pauseOverlay.classList.remove("d-flex");
-        GameState.isGameRunning = true;
-        if (!GameState.isBallLaunched) {
-            InterfaceElements.launchHintOverlay.classList.remove("d-none");
-            InterfaceElements.launchHintOverlay.classList.add("d-flex");
+    btn.resume.addEventListener("click", () => {
+        ui.pauseOverlay.classList.add("d-none");
+        ui.pauseOverlay.classList.remove("d-flex");
+        state.running = true;
+        if (!state.launched) {
+            ui.launchHintOverlay.classList.remove("d-none");
+            ui.launchHintOverlay.classList.add("d-flex");
         }
-        processMainGameLoop();
+        update();
     });
 
-    Buttons.homeFromPause.addEventListener("click", () => {
-        saveCurrentProgressToStorage();
-        switchToHomeMenuScreen();
+    btn.homePause.addEventListener("click", () => {
+        saveGame();
+        goHome();
     });
 
-    Buttons.selectLevelFromPause.addEventListener("click", () => {
-        showWarningBeforeExecute(() => {
+    btn.selectLevel.addEventListener("click", () => {
+        confirmAction(() => {
             localStorage.removeItem("BRICK_BREAKER_SAVE");
-            updateContinueButtonState();
-            switchToHomeMenuScreen();
-            InterfaceElements.homeActions.classList.add("d-none");
-            InterfaceElements.homeActions.classList.remove("d-flex");
-            InterfaceElements.levelSelectArea.classList.remove("d-none");
-            InterfaceElements.levelSelectArea.classList.add("d-flex");
+            checkContinueBtn();
+            goHome();
+            ui.homeActions.classList.add("d-none");
+            ui.homeActions.classList.remove("d-flex");
+            ui.levelSelectArea.classList.remove("d-none");
+            ui.levelSelectArea.classList.add("d-flex");
         });
     });
 
-    Buttons.exitFromPause.addEventListener("click", () => {
-        saveCurrentProgressToStorage();
-        switchToHomeMenuScreen();
+    btn.exitPause.addEventListener("click", () => {
+        saveGame();
+        goHome();
     });
 
-    Buttons.victoryContinue.addEventListener("click", () => {
-        InterfaceElements.victoryOverlay.classList.add("d-none");
-        InterfaceElements.victoryOverlay.classList.remove("d-flex");
+    btn.vicContinue.addEventListener("click", () => {
+        ui.victoryOverlay.classList.add("d-none");
+        ui.victoryOverlay.classList.remove("d-flex");
 
-        if (GameState.currentLevel >= 6) {
+        if (state.level >= 6) {
             alert("Chúc mừng bạn đã xuất sắc phá đảo toàn bộ 6 màn chơi!");
-            switchToHomeMenuScreen();
+            goHome();
             return;
         }
 
-        GameState.currentLevel = Math.min(6, GameState.currentLevel + 1);
-        if (InterfaceElements.levelDisplay) {
-            InterfaceElements.levelDisplay.textContent = `MÀN ${GameState.currentLevel}`;
-        }
-
-        GameState.paddle.positionX = 240;
-        buildLevelBricks();
-        resetBallsToPaddle();
-        renderGraphicsToScreen();
-        GameState.isGameRunning = true;
-        processMainGameLoop();
+        const nextLevel = Math.min(6, state.level + 1);
+        loadLevel(nextLevel, true);
     });
 
-    Buttons.victorySelectLevel.addEventListener("click", () => {
-        switchToHomeMenuScreen();
-        InterfaceElements.homeActions.classList.add("d-none");
-        InterfaceElements.homeActions.classList.remove("d-flex");
-        InterfaceElements.levelSelectArea.classList.remove("d-none");
-        InterfaceElements.levelSelectArea.classList.add("d-flex");
+    btn.vicSelectLevel.addEventListener("click", () => {
+        goHome();
+        ui.homeActions.classList.add("d-none");
+        ui.homeActions.classList.remove("d-flex");
+        ui.levelSelectArea.classList.remove("d-none");
+        ui.levelSelectArea.classList.add("d-flex");
     });
 
-    Buttons.victoryHome.addEventListener("click", () => {
-        switchToHomeMenuScreen();
-    });
+    btn.vicHome.addEventListener("click", goHome);
 
-    Buttons.confirmReset.addEventListener("click", () => {
-        if (modalInstanceForConfirm) modalInstanceForConfirm.hide();
-        if (callbackForReset) {
-            callbackForReset();
-            callbackForReset = null;
+    btn.confirmReset.addEventListener("click", () => {
+        if (modalInstance) modalInstance.hide();
+        if (resetCallback) {
+            resetCallback();
+            resetCallback = null;
         }
     });
 
-    Buttons.confirmExit.addEventListener("click", () => {
-        saveCurrentProgressToStorage();
+    btn.confirmExit.addEventListener("click", () => {
+        saveGame();
         document.body.innerHTML = `<div class="text-center text-white p-5"><h2 class="text-warning">Cảm ơn bạn đã chơi!</h2><p>Tiến trình đã được lưu an toàn.</p></div>`;
     });
 
-    const bgmVolumeSlider = document.getElementById("bgmSlider");
-    if (bgmVolumeSlider) {
-        bgmVolumeSlider.addEventListener("input", (event) => {
-            GameState.bgmVolume = event.target.value / 100;
+    const bgmSlider = document.getElementById("bgmSlider");
+    if (bgmSlider) {
+        bgmSlider.addEventListener("input", (e) => {
+            state.bgmVol = e.target.value / 100;
         });
     }
 
-    const sfxVolumeSlider = document.getElementById("sfxSlider");
-    if (sfxVolumeSlider) {
-        sfxVolumeSlider.addEventListener("input", (event) => {
-            GameState.soundVolume = event.target.value / 100;
+    const sfxSlider = document.getElementById("sfxSlider");
+    if (sfxSlider) {
+        sfxSlider.addEventListener("input", (e) => {
+            state.sfxVol = e.target.value / 100;
         });
     }
 });
