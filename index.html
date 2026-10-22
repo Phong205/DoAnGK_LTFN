@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -120,7 +120,7 @@
         <span class="badge bg-danger px-3 py-2 fs-6">MẠNG: <span id="hudLives">3</span> ❤</span>
 
         <span id="healerHudBadge" class="badge bg-danger text-white px-3 py-2 fs-6 d-none">⚡ HỒI MỤC: <span id="healerTimerDisplay">60</span>s</span>
-        <span id="bossHudBadge" class="badge bg-danger text-white px-3 py-2 fs-6 d-none">👹 BOSS HP: <span id="bossHpDisplay">30</span>/30</span>
+        <span id="bossHudBadge" class="badge bg-danger text-white px-3 py-2 fs-6 d-none">👹 BOSS HP: <span id="bossHpDisplay">20</span>/30</span>
 
         <button id="btnGameMenu" class="badge bg-warning text-dark fw-bold px-3 py-2 fs-6 border-0 shadow-sm" style="cursor: pointer; transition: 0.2s;">
             ☰ MENU
@@ -135,8 +135,7 @@
             <p class="text-light small mb-0">Nhấn "Chơi mới" để bắt đầu trò chơi</p>
         </div>
 
-        <div id="launchHintOverlay"
-             class="screen-overlay d-none flex-column align-items-center justify-content-end pb-5">
+        <div id="launchHintOverlay" class="screen-overlay d-none flex-column align-items-center justify-content-end pb-5">
             <div class="badge bg-dark bg-opacity-75 border border-warning text-warning fs-6 px-3 py-2">
                 🖱️ Nhấn chuột để phóng bóng
             </div>
@@ -147,8 +146,7 @@
                 <h3 id="tutorialTitle" class="text-warning fw-bold mb-3">MÀN 1: GẠCH CƠ BẢN</h3>
                 <div id="tutorialDesc" class="text-start text-light mb-4">
                     <p class="mb-2">👉 <strong>Cơ chế:</strong> Toàn bộ các khối gạch vỡ sau 1 chạm.</p>
-                    <p class="mb-2">🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc dùng phím mũi tên <strong>Trái
-                        / Phải</strong> (hoặc <strong>A / D</strong>).</p>
+                    <p class="mb-2">🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc dùng phím mũi tên <strong>Trái / Phải</strong> (hoặc <strong>A / D</strong>).</p>
                     <p class="mb-0">🖱️ <strong>Khởi động:</strong> Nhấn chuột trái để phóng bóng bắt đầu chơi.</p>
                 </div>
 
@@ -187,16 +185,13 @@
             ▶ Tiếp Tục
         </button>
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-info flex-fill fw-semibold" data-bs-toggle="modal"
-                    data-bs-target="#settingsModal">
+            <button class="btn btn-outline-info flex-fill fw-semibold" data-bs-toggle="modal" data-bs-target="#settingsModal">
                 ⚙️ Cài Đặt
             </button>
-            <button class="btn btn-outline-light flex-fill fw-semibold" data-bs-toggle="modal"
-                    data-bs-target="#guideModal">
+            <button class="btn btn-outline-light flex-fill fw-semibold" data-bs-toggle="modal" data-bs-target="#guideModal">
                 📖 Hướng Dẫn
             </button>
-            <button class="btn btn-outline-danger flex-fill fw-semibold" data-bs-toggle="modal"
-                    data-bs-target="#exitModal">
+            <button class="btn btn-outline-danger flex-fill fw-semibold" data-bs-toggle="modal" data-bs-target="#exitModal">
                 🚪 Thoát
             </button>
         </div>
@@ -226,19 +221,19 @@
             <div class="col-12 col-sm-6">
                 <button class="btn btn-outline-warning w-100 p-3 btn-level" data-level="4">
                     <h5 class="fw-bold mb-1">MÀN 4</h5>
-                    <span class="badge bg-warning text-dark">Gạch bị ẩn </span>
+                    <span class="badge bg-warning text-dark">Gạch bị ẩn</span>
                 </button>
             </div>
             <div class="col-12 col-sm-6">
                 <button class="btn btn-outline-warning w-100 p-3 btn-level" data-level="5">
                     <h5 class="fw-bold mb-1">MÀN 5</h5>
-                    <span class="badge bg-warning text-dark">Gạch hồi phục </span>
+                    <span class="badge bg-warning text-dark">Gạch hồi phục</span>
                 </button>
             </div>
             <div class="col-12 col-sm-6">
                 <button class="btn btn-outline-warning w-100 p-3 btn-level" data-level="6">
                     <h5 class="fw-bold mb-1">MÀN 6</h5>
-                    <span class="badge bg-warning text-dark">Gạch Boss </span>
+                    <span class="badge bg-warning text-dark">Gạch Boss</span>
                 </button>
             </div>
         </div>
@@ -283,8 +278,7 @@
             </div>
             <div class="modal-body text-start">
                 <ul class="list-unstyled d-flex flex-column gap-3 mb-0">
-                    <li>🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc phím mũi tên <strong>Trái / Phải</strong>.
-                    </li>
+                    <li>🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc phím mũi tên <strong>Trái / Phải</strong>.</li>
                     <li>🖱️ <strong>Bắn bóng:</strong> Nhấp chuột trái để đẩy bóng bay đi.</li>
                     <li>🧱 <strong>Phá vỡ:</strong> Dọn sạch các khối gạch để chiến thắng.</li>
                 </ul>
