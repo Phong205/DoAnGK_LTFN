@@ -39,8 +39,12 @@ document.addEventListener("DOMContentLoaded", () => {
         confirmReset: document.getElementById("btnConfirmReset"),
         vicContinue: document.getElementById("btnVictoryContinue"),
         vicSelectLevel: document.getElementById("btnVictorySelectLevel"),
-        vicHome: document.getElementById("btnVictoryHome")
+        vicHome: document.getElementById("btnVictoryHome"),
+        prevPage: document.getElementById("btnPrevPage"),
+        nextPage: document.getElementById("btnNextPage")
     };
+
+    let tutCurrentPage = 1;
 
     const state = {
         running: false,
@@ -1004,20 +1008,52 @@ document.addEventListener("DOMContentLoaded", () => {
         ui.homeOverlay.classList.add("d-flex");
 
         if (ui.leftSidebar) {
-            ui.leftSidebar.classList.add("d-none");
-            ui.leftSidebar.classList.remove("d-flex");
+            ui.leftSidebar.classList.remove("d-none");
         }
         if (ui.rightSidebar) {
-            ui.rightSidebar.classList.add("d-none");
-            ui.rightSidebar.classList.remove("d-flex");
+            ui.rightSidebar.classList.remove("d-none");
         }
-        if (ui.leftSidebar) ui.leftSidebar.classList.remove("d-none");
-        if (ui.rightSidebar) ui.rightSidebar.classList.remove("d-none");
 
         initLevel();
         resetBall();
         draw();
         checkContinueBtn();
+    }
+
+    function updateTutorialPages() {
+        const pageIndicator = document.getElementById("pageIndicator");
+        const tutPage1 = document.getElementById("tutPage1");
+        const tutPage2 = document.getElementById("tutPage2");
+
+        if (tutCurrentPage === 1) {
+            if (tutPage1) tutPage1.classList.remove("d-none");
+            if (tutPage2) tutPage2.classList.add("d-none");
+            if (btn.prevPage) { btn.prevPage.classList.add("disabled"); btn.prevPage.setAttribute("disabled", "true"); }
+            if (btn.nextPage) btn.nextPage.classList.remove("d-none");
+            if (btn.startGame) btn.startGame.classList.add("d-none");
+            if (pageIndicator) pageIndicator.textContent = "Trang 1/2";
+        } else {
+            if (tutPage1) tutPage1.classList.add("d-none");
+            if (tutPage2) tutPage2.classList.remove("d-none");
+            if (btn.prevPage) { btn.prevPage.classList.remove("disabled"); btn.prevPage.removeAttribute("disabled"); }
+            if (btn.nextPage) btn.nextPage.classList.add("d-none");
+            if (btn.startGame) btn.startGame.classList.remove("d-none");
+            if (pageIndicator) pageIndicator.textContent = "Trang 2/2";
+        }
+    }
+
+    if (btn.nextPage) {
+        btn.nextPage.addEventListener("click", () => {
+            tutCurrentPage = 2;
+            updateTutorialPages();
+        });
+    }
+
+    if (btn.prevPage) {
+        btn.prevPage.addEventListener("click", () => {
+            tutCurrentPage = 1;
+            updateTutorialPages();
+        });
     }
 
     function loadLevel(lvl, keepScore = false) {
@@ -1030,20 +1066,57 @@ document.addEventListener("DOMContentLoaded", () => {
         if (ui.level) ui.level.textContent = `MÀN ${state.level}`;
 
         const tutorials = {
-            1: { title: "MÀN 1: GẠCH CƠ BẢN", desc: "👉 Khối gạch vỡ sau 1 chạm.<br>🕹️ Điều khiển: Chuột hoặc phím mũi tên.<br>🖱️ Khởi động: Nhấn chuột trái." },
-            2: { title: "MÀN 2: GẠCH NHIỀU MÁU", desc: "👉 Có những khối gạch cứng cần đập nhiều lần mới vỡ.<br>⚠️ Hãy chú ý màu sắc để biết độ bền của gạch." },
-            3: { title: "MÀN 3: GẠCH THANH CHẮN", desc: "👉 Xuất hiện các thanh chắn kim loại vĩnh cửu không thể bị phá vỡ.<br>⚠️ Bạn phải khéo léo lách bóng qua các khe hở." },
-            4: { title: "MÀN 4: GẠCH BỊ ẨN", desc: "👉 Một số khối gạch tàng hình và chỉ lộ diện khi bóng chạm vào khối nút chỉ định.<br>⚠ Nếu chạm nút lần nữa, gạch sẽ tàng hình lại." },
-            5: { title: "MÀN 5: GẠCH HỒI PHỤC", desc: "👉 Có 3 quả cầu đặc biệt. Lõi ở giữa sẽ bơm máu cho gạch xung quanh mỗi 60s.<br>⚠️ Gạch đã vỡ sẽ không thể mọc lại, hãy ưu tiên tiêu diệt lõi." },
-            6: { title: "MÀN 6: GẠCH BOSS", desc: "👉 Đối đầu với trùm cuối. Khối gạch khổng lồ có lượng máu lớn và tự động bắn đạn tấn công.<br>⚠ Hãy né tránh và tiêu diệt trùm!" }
+            1: {
+                title: "MÀN 1: GẠCH CƠ BẢN",
+                p1: "👉 <strong>Cơ chế:</strong> Toàn bộ các khối gạch vỡ ngay sau 1 lần va chạm.<br>🕹️ <strong>Điều khiển:</strong> Dùng chuột hoặc phím mũi tên Trái/Phải để di chuyển thanh đỡ.",
+                p2: "💡 <strong>Mẹo nhỏ:</strong> Hãy cố gắng đón bóng ở các góc nghiêng của thanh đỡ, sử dụng các vật phẩm rơi ra khi phá gạch và dành chiến thắng!"
+            },
+            2: {
+                title: "MÀN 2: GẠCH NHIỀU MÁU",
+                p1: "👉 <strong>Cơ chế:</strong> Gạch có nhiều lớp máu cứng hơn.<br>🎨 <strong>Màu sắc:</strong> Đỏ (5 HP) ➔ Cam (4 HP) ➔ Vàng (3 HP) ➔ Xanh Lá (2 HP) ➔ Xanh Dương (1 HP).",
+                p2: "💡 <strong>Mẹo nhỏ:</strong> Điều khiển thang chắn ưu tiên tiêu diệt các khối ít máu nhất. Tận dụng các vật phẩm tăng sức mạnh rớt ra để dọn dẹp các hàng gạch dày nhanh chóng!"
+            },
+            3: {
+                title: "MÀN 3: GẠCH THANH CHẮN",
+                p1: "👉 <strong>Cơ chế:</strong> Xuất hiện các khối thanh chắn kim loại xám vĩnh cửu không thể bị phá hủy bật lại những quả bóng chạm vào." +
+                    "<br><br>" +
+                    " <span class='text-danger'><strong>Lưu ý:</strong> Khi sử dụng vật phẩm bóng lửa (fire ball), bóng sẽ bị bật lại khá nhanh khi bóng tiếp xúc với thanh chắn kim loại. Hãy tính toán thật kỹ trước khi sử dụng!",
+                p2: "💡 <strong>Mẹo nhỏ:</strong> Phải căn góc bắn thật khéo léo để đưa bóng lách qua các khoảng hở giữa thanh chắn. Tận dụng hợp lý các vật phẩm rơi ra và giành lấy chiến thắng!"
+            },
+            4: {
+                title: "MÀN 4: GẠCH BỊ ẨN",
+                p1: "👉 <strong>Cơ chế:</strong> Các khối gạch xanh bị tàng hình. Bạn cần va chạm vào Nút Công Tắc màu cam để bật/tắt hiển thị gạch."+
+                    "<br><br>" +
+                    "<span class='text-danger'><strong>Lưu ý:</strong> Các khối gạch sẽ biến mất lần nữa nếu bạn tái kích hoạt nút",
+                p2: "💡 <strong>Mẹo nhỏ:</strong> Đừng lo lắng, các khối gạch sẽ hiện lại lần nữa nếu bạn kích hoạt nút mà không reset lại từ đầu. Hãy sử dụng các vật phẩm hợp lý để dành chiến thắng!+" +
+                    "<br><br>" +
+                    "<span class='text-danger'><strong>Lưu ý:</strong> Bạn có thể sử dụng vật phẩm nhân 3 bóng hoặc bắn ra 3 bóng, nó có thể giúp bạn thắng nhanh hơn nhưng cũng có thể làm các khối ẩn bật tắt liên tục gây khá ức chế. Nó sẽ là 1 canh bạc nếu bạn không tính toán đầy đủ. Hãy né nếu bạn không muốn bị loạn còn không thì (bạn hiểu ý tôi mà 😏). </span>",
+            },
+            5: {
+                title: "MÀN 5: GẠCH HỒI PHỤC",
+                p1: "👉 <strong>Cơ chế:</strong> Có 3 khối Lõi Hồi Phục màu hồng. Lõi sẽ bơm thêm HP cho gạch xung quanh theo chu kỳ đếm ngược (khoảng 60s). Các khối xung quanh lõi sẽ có máu lần lượt 3 máu(vàng), 2 máu(xanh lá) và cuối cùng là 1 máu(xanh dương) nếu không phá hết các khối quanh lõi sẽ hồi phục dần dần qua thời gian tối đa là 3 máu.",
+                p2: "💡 <strong>Mẹo nhỏ:</strong> Hãy ưu tiên đưa bóng tiêu diệt các khối 1 máu xung quanh, sử dụng vật phẩm và phá hủy lõi 1 cách nhanh nhất!"
+            },
+            6: {
+                title: "MÀN 6: GẠCH BOSS",
+                p1: "👉 <strong>Cơ chế:</strong> Đối đầu với Trùm Khổng Lồ (30 HP) được bảo vệ bởi các khối con xung quanh và khối thanh chắn ở bên dưới. Trùm sẽ tự động bắn đạn đe dọa thanh đỡ của bạn, bạn sẽ mất hp nếu thanh chắn của bạn bị trúng đòn!"+
+                    "<br><br>" +
+                    "<span class='text-danger'><strong>Lưu ý:</strong> Hãy hạn chế sử dụng vật phẩm mở rộng thanh đỡ nếu bạn không muốn bị hạn chế khả năng di chuyển!",
+                p2: "💡 <strong>Mẹo nhỏ:</strong> Đầu game hãy ưu tiên hạ gục các khối con xung quanh, nhặt vật phẩm. Di chuyển liên tục để né đạn. Tiêu diệt Trùm là bạn sẽ lập tức Chiến Thắng!"
+            }
         };
 
         const currentTut = tutorials[lvl] || tutorials[1];
         const titleEl = document.getElementById("tutorialTitle");
-        const descEl = document.getElementById("tutorialDesc");
+        const desc1 = document.getElementById("tutorialDesc1");
+        const desc2 = document.getElementById("tutorialDesc2");
 
         if (titleEl) titleEl.textContent = currentTut.title;
-        if (descEl) descEl.innerHTML = currentTut.desc;
+        if (desc1) desc1.innerHTML = currentTut.p1;
+        if (desc2) desc2.innerHTML = currentTut.p2;
+
+        tutCurrentPage = 1;
+        updateTutorialPages();
 
         state.paddle.x = 240;
         initLevel();

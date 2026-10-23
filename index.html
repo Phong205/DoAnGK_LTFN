@@ -161,7 +161,6 @@
                 </div>
             </div>
 
-            <!-- GIAO DIỆN HƯỚNG DẪN DẠNG SÁCH LẬT TRANG -->
             <div id="tutorialOverlay" class="game-overlay d-none flex-column align-items-center justify-content-center p-3">
                 <div class="tutorial-card rounded p-4 text-center shadow-lg position-relative">
                     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -170,21 +169,17 @@
                     </div>
                     <hr class="border-warning my-2">
 
-                    <!-- Trang 1 -->
                     <div id="tutPage1" class="text-start text-light my-3" style="min-height: 110px;">
                         <p id="tutorialDesc1" class="mb-0 fs-6"></p>
                     </div>
 
-                    <!-- Trang 2 -->
                     <div id="tutPage2" class="text-start text-light my-3 d-none" style="min-height: 110px;">
                         <p id="tutorialDesc2" class="mb-0 fs-6"></p>
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top border-secondary">
                         <button id="btnPrevPage" class="btn btn-outline-secondary btn-sm px-3 disabled" disabled>⬅ Trang trước</button>
-
                         <button id="btnNextPage" class="btn btn-outline-warning fw-bold px-3">Trang sau ➔</button>
-
                         <button id="btnStartGameplay" class="btn btn-warning fw-bold px-4 d-none">BẮT ĐẦU CHƠI 🎮</button>
                     </div>
                 </div>
@@ -297,14 +292,29 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-start p-4">
-                <h6 class="text-info fw-bold mb-2">🕹️ CÁCH ĐIỀU KHIỂN & LỐI CHƠI</h6>
+                <h6 class="text-info fw-bold mb-2">GIỚI THIỆU CHUNG</h6>
+                <ul class="list-unstyled d-flex flex-column gap-2 mb-4 text-light small">
+                    <li>Brick Breaker là tựa trò chơi phá gạch kinh điển được làm mới hoàn toàn trên nền tảng Web (HTML5/JavaScript kết hợp Bootstrap). Trò chơi giữ lại lối chơi cốt lõi quen thuộc nhưng được bổ sung thêm 6 màn chơi với các cơ chế chiến đấu chuyên sâu, hệ thống vật phẩm (Power-ups) đa dạng, cùng thử thách đánh Boss kịch tính ở màn cuối.</li>
+                </ul>
+
+                <h6 class="text-info fw-bold mb-2">CÁC TÍNH NĂNG VÀ ĐIỂM NỔI BẬT GIỮA CÁC MÀN</h6>
+                <ul class="list-unstyled d-flex flex-column gap-2 mb-4 text-light small">
+                    <li>• <strong>Màn 1 (Gạch cơ bản):</strong> Làm quen với nhịp độ và cách điều khiển thanh đỡ, quả bóng.</li>
+                    <li>• <strong>Màn 2 (Gạch nhiều máu):</strong> Gạch được phân cấp độ bền theo màu sắc (từ 1 đến 5 HP), đòi hỏi người chơi phải tấn công nhiều lần.</li>
+                    <li>• <strong>Màn 3 (Gạch thanh chắn):</strong> Xuất hiện các khối kim loại cố định, bắt buộc người chơi phải tính toán góc nảy của bóng thật chuẩn xác.(Lưu ý: Khi sử dụng item bóng lửa, bóng có khả năng bật lại với tốc độ cao khi chạm vào khối kim loại).</li>
+                    <li>• <strong>Màn 4 (Gạch ẩn/Tàng hình):</strong> Gạch bị ẩn đi, bạn phải kích hoạt công tắc màu cam để làm lộ diện chúng. (Lưu ý: Gạch sẽ bị ẩn đi nếu bóng chạm vào công tắc lần nữa).</li>
+                    <li>• <strong>Màn 5 (Gạch hồi phục):</strong> Thử thách chiến thuật khi xuất hiện các "Lõi Hồi Phục" tự động bơm máu cho các khối gạch xung quanh theo chu kỳ 60s.</li>
+                    <li>• <strong>Màn 6 (Đấu Trùm - Boss):</strong> Đối đầu trực tiếp với Trùm Khổng Lồ (30 HP) vừa có khả năng chống chịu vừa liên tục xả đạn tấn công ngược lại thanh đỡ của bạn.</li>
+                </ul>
+
+                <h6 class="text-info fw-bold mb-2">CÁCH ĐIỀU KHIỂN & LỐI CHƠI</h6>
                 <ul class="list-unstyled d-flex flex-column gap-2 mb-4 text-light small">
                     <li>• <strong>Di chuyển:</strong> Di chuột hoặc dùng phím mũi tên <strong>Trái / Phải</strong> (hoặc <strong>A / D</strong>).</li>
                     <li>• <strong>Bắn bóng:</strong> Nhấn chuột trái để phóng bóng bắt đầu chơi.</li>
                     <li>• <strong>Thắng màn:</strong> Phá sạch toàn bộ khối gạch (hoặc hạ gục Trùm ở Màn 6).</li>
                 </ul>
 
-                <h6 class="text-warning fw-bold mb-3">🎁 DANH SÁCH VẬT PHẨM (POWER-UPS)</h6>
+                <h6 class="text-info fw-bold mb-2">DANH SÁCH VẬT PHẨM (POWER-UPS)</h6>
                 <div class="row g-3">
                     <div class="col-12 col-md-6 d-flex align-items-center gap-3 bg-black bg-opacity-40 p-2 rounded border border-secondary">
                         <div class="item-icon-box" style="background-image: url('assets/icon_Item/expand.png');"></div>
@@ -331,14 +341,14 @@
                         <div class="item-icon-box" style="background-image: url('assets/icon_Item/shield.png');"></div>
                         <div>
                             <strong class="text-info small">Khiên Bảo Vệ</strong>
-                            <p class="mb-0 text-secondary border-0 p-0" style="font-size: 0.75rem;">Tạo màng chắn ở đáy ngăn bóng hoặc đạn bị lọt lưới.</p>
+                            <p class="mb-0 text-secondary border-0 p-0" style="font-size: 0.75rem;">Tạo màng chắn ở đáy ngăn bóng hoặc đạn bị lọt lưới. Biến mất khi bóng chạm vào thanh hoặc sẽ biến mất sau 10s từ khi nhặt vật phẩm.</p>
                         </div>
                     </div>
                     <div class="col-12 col-md-6 d-flex align-items-center gap-3 bg-black bg-opacity-40 p-2 rounded border border-secondary">
                         <div class="item-icon-box" style="background-image: url('assets/icon_Item/split.png');"></div>
                         <div>
-                            <strong class="text-success small">Phân Tách Bóng (x2)</strong>
-                            <p class="mb-0 text-secondary border-0 p-0" style="font-size: 0.75rem;">Nhân đôi số lượng quả bóng đang có trên màn hình.</p>
+                            <strong class="text-success small">Phân Tách Bóng (x3)</strong>
+                            <p class="mb-0 text-secondary border-0 p-0" style="font-size: 0.75rem;">Nhân ba số lượng quả bóng đang có trên màn hình.</p>
                         </div>
                     </div>
                     <div class="col-12 col-md-6 d-flex align-items-center gap-3 bg-black bg-opacity-40 p-2 rounded border border-secondary">
