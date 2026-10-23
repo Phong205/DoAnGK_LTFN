@@ -9,21 +9,16 @@
         body {
             background-color: #0d1322;
             background-image:
-                    radial-gradient(circle at 10% 20%, rgba(0, 242, 254, 0.05) 0%, transparent 20%),
-                    radial-gradient(circle at 90% 80%, rgba(255, 71, 87, 0.05) 0%, transparent 20%),
-                    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+                    radial-gradient(circle at 50% 35%, rgba(0, 242, 254, 0.15) 0%, transparent 60%),
+                    radial-gradient(circle at 10% 20%, rgba(0, 242, 254, 0.08) 0%, transparent 30%),
+                    radial-gradient(circle at 90% 80%, rgba(255, 71, 87, 0.08) 0%, transparent 30%),
+                    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 100% 100%, 40px 40px, 40px 40px;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             color: #f8fafc;
             overflow-x: hidden;
             user-select: none;
-        }
-
-        .home-container,
-        .level-select-container,
-        .game-container {
-            width: 100%;
         }
 
         .game-title {
@@ -45,20 +40,13 @@
             min-height: 340px;
             max-height: 420px;
             width: auto;
-            transition: height 0.45s cubic-bezier(0.25, 1, 0.5, 1),
-            max-height 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+            transition: height 0.45s cubic-bezier(0.25, 1, 0.5, 1), max-height 0.45s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .game-screen-wrapper.playing-size {
             height: 78vh;
             min-height: 580px;
             max-height: 820px;
-        }
-
-        .game-screen-wrapper canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
         }
 
         .game-screen-wrapper .screen-overlay {
@@ -71,49 +59,41 @@
         .game-screen-wrapper .game-overlay {
             position: absolute;
             inset: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(5px);
             z-index: 10;
         }
 
         .game-screen-wrapper .tutorial-card {
-            max-width: 440px;
-            width: 90%;
+            max-width: 480px;
+            width: 92%;
+            background: #111827;
+            border: 2px solid #ffc107 !important;
+            box-shadow: 0 0 20px rgba(255, 193, 7, 0.2);
         }
 
-        .game-hud {
-            width: auto;
-            min-width: 380px;
-            max-width: 600px;
-            transition: opacity 0.3s ease;
-        }
-
-        .menu-actions,
-        .level-grid {
+        .game-hud, .menu-actions, .level-grid {
             width: auto;
             min-width: 320px;
             max-width: 460px;
             transition: opacity 0.3s ease;
         }
 
-        .menu-actions .btn,
-        .level-grid .btn {
+        .menu-actions .btn, .level-grid .btn {
             border-radius: 8px;
             padding-top: 0.65rem;
             padding-bottom: 0.65rem;
             transition: all 0.2s ease-in-out;
         }
 
-        .menu-actions .btn:hover:not(:disabled),
-        .level-grid .btn:hover:not(:disabled) {
+        .menu-actions .btn:hover:not(:disabled), .level-grid .btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 242, 254, 0.3);
         }
 
         .side-dashboard {
-            background-color: rgba(30, 41, 59, 0.75) !important;
-            border-color: rgba(255, 255, 255, 0.15) !important;
-            backdrop-filter: blur(8px);
+            background-color: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(10px);
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
             transition: opacity 0.3s ease;
             display: flex !important;
@@ -123,6 +103,16 @@
             #leftSidebar, #rightSidebar {
                 display: none !important;
             }
+        }
+
+        .item-icon-box {
+            width: 32px;
+            height: 32px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
         }
     </style>
 </head>
@@ -143,14 +133,14 @@
         <span id="healerHudBadge" class="badge bg-danger text-white px-3 py-2 fs-6 d-none">⚡ HỒI MỤC: <span id="healerTimerDisplay">60</span>s</span>
         <span id="bossHudBadge" class="badge bg-danger text-white px-3 py-2 fs-6 d-none">👹 BOSS HP: <span id="bossHpDisplay">30</span>/30</span>
 
-        <button id="btnGameMenu" class="badge bg-warning text-dark fw-bold px-3 py-2 fs-6 border-0 shadow-sm" style="cursor: pointer; transition: 0.2s;">
+        <button id="btnGameMenu" class="badge bg-warning text-dark fw-bold px-3 py-2 fs-6 border-0 shadow-sm" style="cursor: pointer;">
             ☰ MENU
         </button>
     </div>
 
     <div class="d-flex align-items-center justify-content-center gap-4 w-100 position-relative">
 
-        <div id="leftSidebar" class="side-dashboard d-none flex-column align-items-center p-3 rounded border border-info bg-dark bg-opacity-50" style="width: 180px; height: 500px;">
+        <div id="leftSidebar" class="side-dashboard flex-column align-items-center p-3 rounded border border-info" style="width: 180px; height: 500px;">
             <h6 class="text-info fw-bold mb-3 w-100 text-center border-bottom pb-2">⚡ TRẠNG THÁI</h6>
             <div id="buffList" class="d-flex flex-column gap-2 w-100 text-start small">
                 <span class="text-secondary fst-italic">Chưa có buff</span>
@@ -171,16 +161,32 @@
                 </div>
             </div>
 
+            <!-- GIAO DIỆN HƯỚNG DẪN DẠNG SÁCH LẬT TRANG -->
             <div id="tutorialOverlay" class="game-overlay d-none flex-column align-items-center justify-content-center p-3">
-                <div class="tutorial-card bg-dark border border-warning rounded p-4 text-center shadow-lg">
-                    <h3 id="tutorialTitle" class="text-warning fw-bold mb-3">MÀN 1: GẠCH CƠ BẢN</h3>
-                    <div id="tutorialDesc" class="text-start text-light mb-4">
-                        <p class="mb-2">👉 <strong>Cơ chế:</strong> Toàn bộ các khối gạch vỡ sau 1 chạm.</p>
-                        <p class="mb-2">🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc dùng phím mũi tên <strong>Trái / Phải</strong> (hoặc <strong>A / D</strong>).</p>
-                        <p class="mb-0">🖱️ <strong>Khởi động:</strong> Nhấn chuột trái để phóng bóng bắt đầu chơi.</p>
+                <div class="tutorial-card rounded p-4 text-center shadow-lg position-relative">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h4 id="tutorialTitle" class="text-warning fw-bold mb-0">MÀN 1</h4>
+                        <span id="pageIndicator" class="badge bg-secondary">Trang 1/2</span>
+                    </div>
+                    <hr class="border-warning my-2">
+
+                    <!-- Trang 1 -->
+                    <div id="tutPage1" class="text-start text-light my-3" style="min-height: 110px;">
+                        <p id="tutorialDesc1" class="mb-0 fs-6"></p>
                     </div>
 
-                    <button id="btnStartGameplay" class="btn btn-warning btn-lg fw-bold px-5">Tiếp tục ➔</button>
+                    <!-- Trang 2 -->
+                    <div id="tutPage2" class="text-start text-light my-3 d-none" style="min-height: 110px;">
+                        <p id="tutorialDesc2" class="mb-0 fs-6"></p>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top border-secondary">
+                        <button id="btnPrevPage" class="btn btn-outline-secondary btn-sm px-3 disabled" disabled>⬅ Trang trước</button>
+
+                        <button id="btnNextPage" class="btn btn-outline-warning fw-bold px-3">Trang sau ➔</button>
+
+                        <button id="btnStartGameplay" class="btn btn-warning fw-bold px-4 d-none">BẮT ĐẦU CHƠI 🎮</button>
+                    </div>
                 </div>
             </div>
 
@@ -195,7 +201,7 @@
             </div>
 
             <div id="victoryOverlay" class="game-overlay d-none flex-column align-items-center justify-content-center p-3">
-                <div class="tutorial-card bg-dark border border-success rounded p-4 text-center shadow-lg">
+                <div class="tutorial-card rounded p-4 text-center shadow-lg">
                     <h2 class="text-success fw-bold display-6 mb-2">🎉 BẠN THẮNG! 🎉</h2>
                     <p class="text-light mb-4">Chúc mừng bạn đã dọn sạch toàn bộ các khối gạch.</p>
                     <div class="d-flex flex-column gap-2">
@@ -207,7 +213,7 @@
             </div>
         </div>
 
-        <div id="rightSidebar" class="side-dashboard d-none flex-column align-items-center p-3 rounded border border-warning bg-dark bg-opacity-50" style="width: 180px; height: 500px;">
+        <div id="rightSidebar" class="side-dashboard flex-column align-items-center p-3 rounded border border-warning" style="width: 180px; height: 500px;">
             <h6 class="text-warning fw-bold mb-3 w-100 text-center border-bottom pb-2">📊 THỐNG KÊ</h6>
             <div class="d-flex flex-column gap-3 w-100 small text-start text-light">
                 <div>🧱 Gạch còn lại:<br><strong id="statBricks" class="text-warning fs-6">0</strong></div>
@@ -283,6 +289,81 @@
     </section>
 </main>
 
+<div class="modal fade" id="guideModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-dark text-white border border-light shadow-lg">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-warning fw-bold">📖 Hướng Dẫn & Danh Sách Vật Phẩm</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-start p-4">
+                <h6 class="text-info fw-bold mb-2">🕹️ CÁCH ĐIỀU KHIỂN & LỐI CHƠI</h6>
+                <ul class="list-unstyled d-flex flex-column gap-2 mb-4 text-light small">
+                    <li>• <strong>Di chuyển:</strong> Di chuột hoặc dùng phím mũi tên <strong>Trái / Phải</strong> (hoặc <strong>A / D</strong>).</li>
+                    <li>• <strong>Bắn bóng:</strong> Nhấn chuột trái để phóng bóng bắt đầu chơi.</li>
+                    <li>• <strong>Thắng màn:</strong> Phá sạch toàn bộ khối gạch (hoặc hạ gục Trùm ở Màn 6).</li>
+                </ul>
+
+                <h6 class="text-warning fw-bold mb-3">🎁 DANH SÁCH VẬT PHẨM (POWER-UPS)</h6>
+                <div class="row g-3">
+                    <div class="col-12 col-md-6 d-flex align-items-center gap-3 bg-black bg-opacity-40 p-2 rounded border border-secondary">
+                        <div class="item-icon-box" style="background-image: url('assets/icon_Item/expand.png');"></div>
+                        <div>
+                            <strong class="text-warning small">Mở Rộng Thanh</strong>
+                            <p class="mb-0 text-secondary border-0 p-0" style="font-size: 0.75rem;">Tăng độ dài thanh đỡ giúp đỡ bóng dễ dàng hơn.</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-center gap-3 bg-black bg-opacity-40 p-2 rounded border border-secondary">
+                        <div class="item-icon-box" style="background-image: url('assets/icon_Item/life.png');"></div>
+                        <div>
+                            <strong class="text-danger small">Tăng Mạng (+1)</strong>
+                            <p class="mb-0 text-secondary border-0 p-0" style="font-size: 0.75rem;">Cộng thêm 1 mạng sinh tồn (tối đa 5 mạng).</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-center gap-3 bg-black bg-opacity-40 p-2 rounded border border-secondary">
+                        <div class="item-icon-box" style="background-image: url('assets/icon_Item/fireball.png');"></div>
+                        <div>
+                            <strong class="text-danger small">Bóng Lửa (Fireball)</strong>
+                            <p class="mb-0 text-secondary border-0 p-0" style="font-size: 0.75rem;">Bóng di chuyển cực nhanh và xuyên thủng mọi gạch.</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-center gap-3 bg-black bg-opacity-40 p-2 rounded border border-secondary">
+                        <div class="item-icon-box" style="background-image: url('assets/icon_Item/shield.png');"></div>
+                        <div>
+                            <strong class="text-info small">Khiên Bảo Vệ</strong>
+                            <p class="mb-0 text-secondary border-0 p-0" style="font-size: 0.75rem;">Tạo màng chắn ở đáy ngăn bóng hoặc đạn bị lọt lưới.</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-center gap-3 bg-black bg-opacity-40 p-2 rounded border border-secondary">
+                        <div class="item-icon-box" style="background-image: url('assets/icon_Item/split.png');"></div>
+                        <div>
+                            <strong class="text-success small">Phân Tách Bóng (x2)</strong>
+                            <p class="mb-0 text-secondary border-0 p-0" style="font-size: 0.75rem;">Nhân đôi số lượng quả bóng đang có trên màn hình.</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-center gap-3 bg-black bg-opacity-40 p-2 rounded border border-secondary">
+                        <div class="item-icon-box" style="background-image: url('assets/icon_Item/shoot.png');"></div>
+                        <div>
+                            <strong class="text-primary small">Bắn Đạn Pháo</strong>
+                            <p class="mb-0 text-secondary border-0 p-0" style="font-size: 0.75rem;">Bắn ra 3 quả bóng bổ sung theo dạng chùm.</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-center gap-3 bg-black bg-opacity-40 p-2 rounded border border-secondary">
+                        <div class="item-icon-box" style="background-image: url('assets/icon_Item/slow.png');"></div>
+                        <div>
+                            <strong class="text-light small">Làm Chậm Bóng</strong>
+                            <p class="mb-0 text-secondary border-0 p-0" style="font-size: 0.75rem;">Giảm tốc độ bay của bóng giúp bạn dễ làm chủ đường đi.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary justify-content-center">
+                <button type="button" class="btn btn-warning px-4 fw-bold" data-bs-dismiss="modal">ĐÃ HIỂU</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="settingsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-dark text-white border border-info shadow-lg">
@@ -306,27 +387,6 @@
             </div>
             <div class="modal-footer border-secondary justify-content-center">
                 <button type="button" class="btn btn-primary px-4 fw-bold" data-bs-dismiss="modal">Đồng ý</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="guideModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content bg-dark text-white border border-light shadow-lg">
-            <div class="modal-header border-secondary">
-                <h5 class="modal-title text-warning fw-bold">📖 Hướng Dẫn Cách Chơi</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-start">
-                <ul class="list-unstyled d-flex flex-column gap-3 mb-0">
-                    <li>🕹️ <strong>Điều khiển:</strong> Di chuyển chuột hoặc phím mũi tên <strong>Trái / Phải</strong>.</li>
-                    <li>🖱️ <strong>Bắn bóng:</strong> Nhấp chuột trái để đẩy bóng bay đi.</li>
-                    <li>🧱 <strong>Phá vỡ:</strong> Dọn sạch các khối gạch để chiến thắng.</li>
-                </ul>
-            </div>
-            <div class="modal-footer border-secondary justify-content-center">
-                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Đã hiểu</button>
             </div>
         </div>
     </div>
