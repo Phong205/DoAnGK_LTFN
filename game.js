@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let tutCurrentPage = 1;
 
-    const state = {
+    const activeGameState = {
         running: false,
         launched: false,
         animId: null,
@@ -84,7 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
         cooldown: 0
     };
 
-    const cfg = {
+    const brickLayoutConfiguration = {
         rows: 12,
         cols: 15,
         bW: 30,
@@ -93,29 +93,29 @@ document.addEventListener("DOMContentLoaded", () => {
         top: 70,
         colors: ["#00a8ff", "#1e90ff", "#00f2fe", "#48dbfb", "#0abde3", "#70a1ff"]
     };
-    cfg.left = (600 - (cfg.cols * (cfg.bW + cfg.pad) - cfg.pad)) / 2;
+    brickLayoutConfiguration.left = (600 - (brickLayoutConfiguration.cols * (brickLayoutConfiguration.bW + brickLayoutConfiguration.pad) - brickLayoutConfiguration.pad)) / 2;
 
     function initAudio() {
-        if (!state.audioCtx) {
+        if (!activeGameState.audioCtx) {
             const AC = window.AudioContext || window.webkitAudioContext;
-            if (AC) state.audioCtx = new AC();
+            if (AC) activeGameState.audioCtx = new AC();
         }
     }
 
     function playSound() {
-        if (!state.audioCtx || state.sfxVol <= 0) return;
+        if (!activeGameState.audioCtx || activeGameState.sfxVol <= 0) return;
         try {
-            const osc = state.audioCtx.createOscillator();
-            const gain = state.audioCtx.createGain();
+            const osc = activeGameState.audioCtx.createOscillator();
+            const gain = activeGameState.audioCtx.createGain();
             osc.type = "sine";
-            osc.frequency.setValueAtTime(440, state.audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(880, state.audioCtx.currentTime + 0.05);
-            gain.gain.setValueAtTime(state.sfxVol, state.audioCtx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.01, state.audioCtx.currentTime + 0.05);
+            osc.frequency.setValueAtTime(440, activeGameState.audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(880, activeGameState.audioCtx.currentTime + 0.05);
+            gain.gain.setValueAtTime(activeGameState.sfxVol, activeGameState.audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, activeGameState.audioCtx.currentTime + 0.05);
             osc.connect(gain);
-            gain.connect(state.audioCtx.destination);
+            gain.connect(activeGameState.audioCtx.destination);
             osc.start();
-            osc.stop(state.audioCtx.currentTime + 0.05);
+            osc.stop(activeGameState.audioCtx.currentTime + 0.05);
         } catch (e) {}
     }
 
@@ -134,7 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
             y: y,
             vx: 0,
             vy: 0,
-            speed: state.ballSpeed,
+            speed: activeGameState.ballSpeed,
             fireball: false
         };
     }
@@ -144,18 +144,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function initPaddle() {
-        state.paddle.el = createEl("div", {
-            width: state.paddle.w + "px",
-            height: state.paddle.h + "px",
+        activeGameState.paddle.el = createEl("div", {
+            width: activeGameState.paddle.w + "px",
+            height: activeGameState.paddle.h + "px",
             borderRadius: "6px",
             backgroundColor: "#00f2fe",
             transition: "width 0.2s"
         });
-        ui.playArea.appendChild(state.paddle.el);
+        ui.playArea.appendChild(activeGameState.paddle.el);
     }
 
     function initShield() {
-        state.shield.el = createEl("div", {
+        activeGameState.shield.el = createEl("div", {
             width: "600px",
             height: "10px",
             bottom: "10px",
@@ -163,7 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
             backgroundColor: "rgba(0, 210, 211, 0.7)",
             display: "none"
         });
-        ui.playArea.appendChild(state.shield.el);
+        ui.playArea.appendChild(activeGameState.shield.el);
     }
 
     function initBall(b) {
@@ -177,10 +177,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function createBrick(c, r, hp, isU, isH, isHideable, isT, isTOn, isHealer, isBoss, col) {
-        const x = c * (cfg.bW + cfg.pad) + cfg.left;
-        const y = r * (cfg.bH + cfg.pad) + cfg.top;
-        const w = isBoss ? cfg.bW * 3 : cfg.bW;
-        const h = isBoss ? cfg.bH * 2.5 : cfg.bH;
+        const x = c * (brickLayoutConfiguration.bW + brickLayoutConfiguration.pad) + brickLayoutConfiguration.left;
+        const y = r * (brickLayoutConfiguration.bH + brickLayoutConfiguration.pad) + brickLayoutConfiguration.top;
+        const w = isBoss ? brickLayoutConfiguration.bW * 3 : brickLayoutConfiguration.bW;
+        const h = isBoss ? brickLayoutConfiguration.bH * 2.5 : brickLayoutConfiguration.bH;
 
         let color = isBoss ? "#1a1a2e" : col;
 
@@ -258,22 +258,22 @@ document.addEventListener("DOMContentLoaded", () => {
         initPaddle();
         initShield();
 
-        state.bricks = [];
-        state.items = [];
-        state.balls = [];
-        state.bullets = [];
-        state.bossTimer = 0;
-        state.bricksLeft = 0;
-        state.paddle.w = 120;
-        state.paddle.fireball = false;
-        state.shield.active = false;
-        state.cooldown = 0;
+        activeGameState.bricks = [];
+        activeGameState.items = [];
+        activeGameState.balls = [];
+        activeGameState.bullets = [];
+        activeGameState.bossTimer = 0;
+        activeGameState.bricksLeft = 0;
+        activeGameState.paddle.w = 120;
+        activeGameState.paddle.fireball = false;
+        activeGameState.shield.active = false;
+        activeGameState.cooldown = 0;
 
-        for (let c = 0; c < cfg.cols; c++) {
-            state.bricks[c] = [];
-            for (let r = 0; r < cfg.rows; r++) {
+        for (let c = 0; c < brickLayoutConfiguration.cols; c++) {
+            activeGameState.bricks[c] = [];
+            for (let r = 0; r < brickLayoutConfiguration.rows; r++) {
                 let hp = 1;
-                let color = cfg.colors[r % cfg.colors.length];
+                let color = brickLayoutConfiguration.colors[r % brickLayoutConfiguration.colors.length];
                 let isU = false;
                 let isH = false;
                 let isHideable = false;
@@ -282,9 +282,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 let isBoss = false;
                 let active = true;
 
-                if (state.level === 1) {
+                if (activeGameState.level === 1) {
                     color = "#00f2fe";
-                } else if (state.level === 2) {
+                } else if (activeGameState.level === 2) {
                     const l2Cols = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
                     if (r < 2) hp = 5;
                     else if (r < 4) hp = 4;
@@ -292,13 +292,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     else if (r < 9) hp = 2;
                     else hp = 1;
                     color = l2Cols[hp];
-                } else if (state.level === 3) {
+                } else if (activeGameState.level === 3) {
                     if ((r === 4 || r === 8) && (c !== 2 && c !== 7 && c !== 12)) {
                         isU = true;
                         hp = -1;
                         color = "#7f8c8d";
                     }
-                } else if (state.level === 4) {
+                } else if (activeGameState.level === 4) {
                     if ((r === 3 && c === 7) || (r === 6 && c === 3) || (r === 6 && c === 11)) {
                         isT = true;
                         isU = true;
@@ -311,7 +311,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     } else {
                         active = false;
                     }
-                } else if (state.level === 5) {
+                } else if (activeGameState.level === 5) {
                     active = false;
                     hp = 1;
                     color = "#1e90ff";
@@ -338,7 +338,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             active = true;
                         }
                     }
-                } else if (state.level === 6) {
+                } else if (activeGameState.level === 6) {
                     active = false;
                     hp = 1;
                     color = "#1e90ff";
@@ -362,43 +362,43 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 if (!active) {
-                    state.bricks[c][r] = { active: false };
+                    activeGameState.bricks[c][r] = { active: false };
                     continue;
                 }
 
-                state.bricks[c][r] = createBrick(c, r, hp, isU, isH, isHideable, isT, false, isHealer, isBoss, color);
+                activeGameState.bricks[c][r] = createBrick(c, r, hp, isU, isH, isHideable, isT, false, isHealer, isBoss, color);
 
                 if (!isU && !isBoss) {
-                    state.bricksLeft++;
+                    activeGameState.bricksLeft++;
                 }
             }
         }
     }
 
     function resetBall() {
-        state.launched = false;
-        state.paddle.fireball = false;
+        activeGameState.launched = false;
+        activeGameState.paddle.fireball = false;
 
-        state.balls.forEach(b => { if (b.el) b.el.remove(); });
+        activeGameState.balls.forEach(b => { if (b.el) b.el.remove(); });
 
-        const b = newBall(state.paddle.x + state.paddle.w / 2, state.paddle.y - 9);
+        const b = newBall(activeGameState.paddle.x + activeGameState.paddle.w / 2, activeGameState.paddle.y - 9);
         initBall(b);
-        state.balls = [b];
+        activeGameState.balls = [b];
 
-        if (state.running) {
+        if (activeGameState.running) {
             ui.launchHintOverlay.classList.remove("d-none");
             ui.launchHintOverlay.classList.add("d-flex");
         }
     }
 
     function launchBall() {
-        if (!state.running || state.launched) return;
+        if (!activeGameState.running || activeGameState.launched) return;
 
-        state.launched = true;
+        activeGameState.launched = true;
         ui.launchHintOverlay.classList.add("d-none");
         ui.launchHintOverlay.classList.remove("d-flex");
 
-        state.balls.forEach(b => {
+        activeGameState.balls.forEach(b => {
             const angle = (Math.PI / 4) + (Math.random() * (Math.PI / 2));
             const dirX = Math.random() < 0.5 ? -1 : 1;
             b.vx = b.speed * Math.cos(angle) * dirX;
@@ -412,42 +412,42 @@ document.addEventListener("DOMContentLoaded", () => {
         const statShield = document.getElementById("statShield");
         const statHighScore = document.getElementById("statHighScore");
 
-        if (statBricks) statBricks.textContent = state.bricksLeft;
-        if (statFireball) statFireball.textContent = state.paddle.fireball ? "Bật (⚡)" : "Tắt";
-        if (statShield) statShield.textContent = state.shield.active ? `${Math.ceil(state.shield.time / 60)}s` : "Không";
+        if (statBricks) statBricks.textContent = activeGameState.bricksLeft;
+        if (statFireball) statFireball.textContent = activeGameState.paddle.fireball ? "Bật (⚡)" : "Tắt";
+        if (statShield) statShield.textContent = activeGameState.shield.active ? `${Math.ceil(activeGameState.shield.time / 60)}s` : "Không";
 
         let hiScore = localStorage.getItem("BRICK_BREAKER_HIGH_SCORE") || 0;
-        if (state.score > hiScore) {
-            hiScore = state.score;
+        if (activeGameState.score > hiScore) {
+            hiScore = activeGameState.score;
             localStorage.setItem("BRICK_BREAKER_HIGH_SCORE", hiScore);
         }
         if (statHighScore) statHighScore.textContent = hiScore;
 
         if (ui.buffList) {
             let buffsHtml = "";
-            if (state.paddle.w > 120) buffsHtml += `<div class="text-warning">↔ Mở rộng thanh</div>`;
-            if (state.paddle.fireball) buffsHtml += `<div class="text-danger">🔥 Bóng lửa</div>`;
-            if (state.shield.active) buffsHtml += `<div class="text-info">🛡️ Khiên bảo vệ</div>`;
-            if (state.balls.length > 1) buffsHtml += `<div class="text-success">🍒 Đa bóng (${state.balls.length})</div>`;
+            if (activeGameState.paddle.w > 120) buffsHtml += `<div class="text-warning">↔ Mở rộng thanh</div>`;
+            if (activeGameState.paddle.fireball) buffsHtml += `<div class="text-danger">🔥 Bóng lửa</div>`;
+            if (activeGameState.shield.active) buffsHtml += `<div class="text-info">🛡️ Khiên bảo vệ</div>`;
+            if (activeGameState.balls.length > 1) buffsHtml += `<div class="text-success">🍒 Đa bóng (${activeGameState.balls.length})</div>`;
 
             ui.buffList.innerHTML = buffsHtml || `<span class="text-secondary fst-italic">Chưa có buff</span>`;
         }
     }
 
     function draw() {
-        state.paddle.el.style.transform = `translate(${state.paddle.x}px, ${state.paddle.y}px)`;
-        state.paddle.el.style.width = state.paddle.w + "px";
-        state.paddle.el.style.backgroundColor = state.paddle.fireball ? "#ff4757" : "#00f2fe";
+        activeGameState.paddle.el.style.transform = `translate(${activeGameState.paddle.x}px, ${activeGameState.paddle.y}px)`;
+        activeGameState.paddle.el.style.width = activeGameState.paddle.w + "px";
+        activeGameState.paddle.el.style.backgroundColor = activeGameState.paddle.fireball ? "#ff4757" : "#00f2fe";
 
-        if (state.shield.active && state.shield.time > 0) {
-            state.shield.el.style.display = "block";
-            const blink = state.shield.time < 180 && Math.floor(state.shield.time / 15) % 2 === 0;
-            state.shield.el.style.opacity = blink ? "0.2" : "1";
+        if (activeGameState.shield.active && activeGameState.shield.time > 0) {
+            activeGameState.shield.el.style.display = "block";
+            const blink = activeGameState.shield.time < 180 && Math.floor(activeGameState.shield.time / 15) % 2 === 0;
+            activeGameState.shield.el.style.opacity = blink ? "0.2" : "1";
         } else {
-            state.shield.el.style.display = "none";
+            activeGameState.shield.el.style.display = "none";
         }
 
-        state.balls.forEach(b => {
+        activeGameState.balls.forEach(b => {
             b.el.style.transform = `translate(${b.x - b.r}px, ${b.y - b.r}px)`;
             if (b.fireball) {
                 b.el.style.backgroundColor = "#ff4757";
@@ -458,7 +458,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        state.items.forEach(it => {
+        activeGameState.items.forEach(it => {
             it.el.style.transform = `translate(${it.x - it.w / 2}px, ${it.y - it.h / 2}px)`;
         });
 
@@ -466,24 +466,24 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     document.addEventListener("keydown", (e) => {
-        if (["Right", "ArrowRight", "d", "D"].includes(e.key)) state.keys.right = true;
-        if (["Left", "ArrowLeft", "a", "A"].includes(e.key)) state.keys.left = true;
+        if (["Right", "ArrowRight", "d", "D"].includes(e.key)) activeGameState.keys.right = true;
+        if (["Left", "ArrowLeft", "a", "A"].includes(e.key)) activeGameState.keys.left = true;
     });
 
     document.addEventListener("keyup", (e) => {
-        if (["Right", "ArrowRight", "d", "D"].includes(e.key)) state.keys.right = false;
-        if (["Left", "ArrowLeft", "a", "A"].includes(e.key)) state.keys.left = false;
+        if (["Right", "ArrowRight", "d", "D"].includes(e.key)) activeGameState.keys.right = false;
+        if (["Left", "ArrowLeft", "a", "A"].includes(e.key)) activeGameState.keys.left = false;
     });
 
     ui.playArea.addEventListener("mousemove", (e) => {
-        if (!state.running) return;
+        if (!activeGameState.running) return;
         const rect = ui.playArea.getBoundingClientRect();
         const mouseX = (e.clientX - rect.left) * (600 / rect.width);
 
         if (mouseX > 0 && mouseX < 600) {
-            state.paddle.x = Math.max(0, Math.min(600 - state.paddle.w, mouseX - state.paddle.w / 2));
-            if (!state.launched && state.balls.length > 0) {
-                state.balls[0].x = state.paddle.x + state.paddle.w / 2;
+            activeGameState.paddle.x = Math.max(0, Math.min(600 - activeGameState.paddle.w, mouseX - activeGameState.paddle.w / 2));
+            if (!activeGameState.launched && activeGameState.balls.length > 0) {
+                activeGameState.balls[0].x = activeGameState.paddle.x + activeGameState.paddle.w / 2;
             }
         }
     });
@@ -501,7 +501,7 @@ document.addEventListener("DOMContentLoaded", () => {
             { type: "shield", icon: "shield.png" }
         ];
 
-        if (state.balls.length <= 2) {
+        if (activeGameState.balls.length <= 2) {
             list.push({ type: "split", icon: "split.png" });
             list.push({ type: "shoot", icon: "shoot.png" });
         }
@@ -519,7 +519,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         ui.playArea.appendChild(el);
 
-        state.items.push({
+        activeGameState.items.push({
             x: x,
             y: y,
             w: 24,
@@ -532,13 +532,13 @@ document.addEventListener("DOMContentLoaded", () => {
     function hitBrick(b, col, row) {
         if (b.isT) {
             playSound();
-            if (state.cooldown > 0) return;
-            state.cooldown = 60;
+            if (activeGameState.cooldown > 0) return;
+            activeGameState.cooldown = 60;
             const nextState = !b.isTOn;
 
-            for (let c = 0; c < cfg.cols; c++) {
-                for (let r = 0; r < cfg.rows; r++) {
-                    const target = state.bricks[c][r];
+            for (let c = 0; c < brickLayoutConfiguration.cols; c++) {
+                for (let r = 0; r < brickLayoutConfiguration.rows; r++) {
+                    const target = activeGameState.bricks[c][r];
                     if (target && target.active) {
                         if (target.isT) {
                             target.cooldown = 15;
@@ -570,34 +570,34 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (b.hp > 0) {
-            if (state.level === 2 || (state.level === 5 && !b.isHealer)) {
+            if (activeGameState.level === 2 || (activeGameState.level === 5 && !b.isHealer)) {
                 const l2Cols = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
                 b.el.style.backgroundColor = l2Cols[b.hp] || "#1e90ff";
-            } else if (state.level === 5 && b.isHealer) {
+            } else if (activeGameState.level === 5 && b.isHealer) {
                 b.el.style.backgroundColor = "#fd79a8";
-            } else if (state.level === 6 && b.isBoss) {
+            } else if (activeGameState.level === 6 && b.isBoss) {
                 b.el.style.backgroundColor = "#1a1a2e";
             }
-            state.score += 5;
-            ui.score.textContent = state.score;
+            activeGameState.score += 5;
+            ui.score.textContent = activeGameState.score;
             playSound();
         } else {
             b.active = false;
             b.el.remove();
 
-            state.score += 10;
-            ui.score.textContent = state.score;
+            activeGameState.score += 10;
+            ui.score.textContent = activeGameState.score;
 
-            if (!b.isBoss) state.bricksLeft--;
+            if (!b.isBoss) activeGameState.bricksLeft--;
 
             playSound();
-            dropItem(b.x + (b.w || cfg.bW) / 2, b.y + (b.h || cfg.bH) / 2);
+            dropItem(b.x + (b.w || brickLayoutConfiguration.bW) / 2, b.y + (b.h || brickLayoutConfiguration.bH) / 2);
 
-            let win = state.level === 6 ? b.isBoss : state.bricksLeft <= 0;
+            let win = activeGameState.level === 6 ? b.isBoss : activeGameState.bricksLeft <= 0;
 
             if (win) {
-                state.running = false;
-                cancelAnimationFrame(state.animId);
+                activeGameState.running = false;
+                cancelAnimationFrame(activeGameState.animId);
                 localStorage.removeItem("BRICK_BREAKER_SAVE");
                 checkContinueBtn();
 
@@ -610,23 +610,23 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function checkCollisions() {
-        for (let c = 0; c < cfg.cols; c++) {
-            for (let r = 0; r < cfg.rows; r++) {
-                const b = state.bricks[c][r];
+        for (let c = 0; c < brickLayoutConfiguration.cols; c++) {
+            for (let r = 0; r < brickLayoutConfiguration.rows; r++) {
+                const b = activeGameState.bricks[c][r];
                 if (b && b.active && b.cooldown > 0) b.cooldown--;
             }
         }
 
-        state.balls.forEach(b => {
+        activeGameState.balls.forEach(b => {
             let bounced = false;
 
-            for (let c = 0; c < cfg.cols; c++) {
-                for (let r = 0; r < cfg.rows; r++) {
-                    const brick = state.bricks[c][r];
+            for (let c = 0; c < brickLayoutConfiguration.cols; c++) {
+                for (let r = 0; r < brickLayoutConfiguration.rows; r++) {
+                    const brick = activeGameState.bricks[c][r];
 
                     if (brick && brick.active && brick.cooldown <= 0 && !brick.isH) {
-                        const bw = brick.w || cfg.bW;
-                        const bh = brick.h || cfg.bH;
+                        const bw = brick.w || brickLayoutConfiguration.bW;
+                        const bh = brick.h || brickLayoutConfiguration.bH;
 
                         const hitX = b.x + b.r > brick.x && b.x - b.r < brick.x + bw;
                         const hitY = b.y + b.r > brick.y && b.y - b.r < brick.y + bh;
@@ -654,26 +654,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function updateItems() {
-        for (let i = 0; i < state.items.length; i++) {
-            const it = state.items[i];
+        for (let i = 0; i < activeGameState.items.length; i++) {
+            const it = activeGameState.items[i];
             it.y += 1.5;
 
-            const hitY = it.y + it.h / 2 > state.paddle.y && it.y - it.h / 2 < state.paddle.y + state.paddle.h;
-            const hitX = it.x + it.w / 2 > state.paddle.x && it.x - it.w / 2 < state.paddle.x + state.paddle.w;
+            const hitY = it.y + it.h / 2 > activeGameState.paddle.y && it.y - it.h / 2 < activeGameState.paddle.y + activeGameState.paddle.h;
+            const hitX = it.x + it.w / 2 > activeGameState.paddle.x && it.x - it.w / 2 < activeGameState.paddle.x + activeGameState.paddle.w;
 
             if (hitY && hitX) {
                 if (it.type === "expand") {
-                    state.paddle.w = Math.min(240, state.paddle.w + 30);
+                    activeGameState.paddle.w = Math.min(240, activeGameState.paddle.w + 30);
                 } else if (it.type === "life") {
-                    if (state.lives < 5) {
-                        state.lives++;
-                        ui.lives.textContent = state.lives;
+                    if (activeGameState.lives < 5) {
+                        activeGameState.lives++;
+                        ui.lives.textContent = activeGameState.lives;
                     } else {
-                        state.score += 50;
-                        ui.score.textContent = state.score;
+                        activeGameState.score += 50;
+                        ui.score.textContent = activeGameState.score;
                     }
                 } else if (it.type === "slow") {
-                    state.balls.forEach(b => {
+                    activeGameState.balls.forEach(b => {
                         if (Math.hypot(b.vx, b.vy) > 2.5) {
                             b.vx *= 0.8;
                             b.vy *= 0.8;
@@ -681,7 +681,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                 } else if (it.type === "split") {
                     const newBalls = [];
-                    state.balls.forEach(b => {
+                    activeGameState.balls.forEach(b => {
                         const a = Math.atan2(b.vy, b.vx);
                         const a1 = a + Math.PI / 6;
                         const a2 = a - Math.PI / 6;
@@ -700,57 +700,57 @@ document.addEventListener("DOMContentLoaded", () => {
                         initBall(b2);
                         newBalls.push(b2);
                     });
-                    state.balls = state.balls.concat(newBalls);
+                    activeGameState.balls = activeGameState.balls.concat(newBalls);
                 } else if (it.type === "shoot") {
                     [-Math.PI / 2, -Math.PI / 2 - Math.PI / 6, -Math.PI / 2 + Math.PI / 6].forEach(a => {
-                        const bullet = newBall(state.paddle.x + state.paddle.w / 2, state.paddle.y - 10);
+                        const bullet = newBall(activeGameState.paddle.x + activeGameState.paddle.w / 2, activeGameState.paddle.y - 10);
                         bullet.vx = bullet.speed * Math.cos(a);
                         bullet.vy = bullet.speed * Math.sin(a);
                         initBall(bullet);
-                        state.balls.push(bullet);
+                        activeGameState.balls.push(bullet);
                     });
                 } else if (it.type === "fireball") {
-                    state.paddle.fireball = true;
+                    activeGameState.paddle.fireball = true;
                 } else if (it.type === "shield") {
-                    state.shield.active = true;
-                    state.shield.time = 600;
+                    activeGameState.shield.active = true;
+                    activeGameState.shield.time = 600;
                 }
 
                 playSound();
                 it.el.remove();
-                state.items.splice(i, 1);
+                activeGameState.items.splice(i, 1);
                 i--;
             } else if (it.y - it.h / 2 > 750) {
                 it.el.remove();
-                state.items.splice(i, 1);
+                activeGameState.items.splice(i, 1);
                 i--;
             }
         }
     }
 
     function update() {
-        if (!state.running) return;
+        if (!activeGameState.running) return;
 
-        if (state.shield.active) {
-            state.shield.time--;
-            if (state.shield.time <= 0) state.shield.active = false;
+        if (activeGameState.shield.active) {
+            activeGameState.shield.time--;
+            if (activeGameState.shield.time <= 0) activeGameState.shield.active = false;
         }
 
-        if (state.cooldown > 0) state.cooldown--;
+        if (activeGameState.cooldown > 0) activeGameState.cooldown--;
 
-        if (!state.launched) {
-            if (state.balls.length > 0) {
-                state.balls[0].x = state.paddle.x + state.paddle.w / 2;
-                state.balls[0].y = state.paddle.y - state.balls[0].r;
+        if (!activeGameState.launched) {
+            if (activeGameState.balls.length > 0) {
+                activeGameState.balls[0].x = activeGameState.paddle.x + activeGameState.paddle.w / 2;
+                activeGameState.balls[0].y = activeGameState.paddle.y - activeGameState.balls[0].r;
             }
         } else {
-            for (let i = state.balls.length - 1; i >= 0; i--) {
-                const b = state.balls[i];
+            for (let i = activeGameState.balls.length - 1; i >= 0; i--) {
+                const b = activeGameState.balls[i];
 
                 function resetFireball() {
                     if (b.fireball) {
                         b.fireball = false;
-                        b.speed = state.ballSpeed;
+                        b.speed = activeGameState.ballSpeed;
                         const a = Math.atan2(b.vy, b.vx);
                         b.vx = b.speed * Math.cos(a);
                         b.vy = b.speed * Math.sin(a);
@@ -771,31 +771,31 @@ document.addEventListener("DOMContentLoaded", () => {
                     b.vy = -b.vy;
                     playSound();
                     resetFireball();
-                } else if (b.y + b.vy > state.paddle.y - b.r) {
-                    const hitPaddle = b.x > state.paddle.x && b.x < state.paddle.x + state.paddle.w;
+                } else if (b.y + b.vy > activeGameState.paddle.y - b.r) {
+                    const hitPaddle = b.x > activeGameState.paddle.x && b.x < activeGameState.paddle.x + activeGameState.paddle.w;
 
                     if (hitPaddle) {
-                        const rel = (b.x - (state.paddle.x + state.paddle.w / 2)) / (state.paddle.w / 2);
+                        const rel = (b.x - (activeGameState.paddle.x + activeGameState.paddle.w / 2)) / (activeGameState.paddle.w / 2);
                         const angle = rel * (Math.PI / 3);
 
-                        if (state.paddle.fireball && !b.fireball) {
+                        if (activeGameState.paddle.fireball && !b.fireball) {
                             b.fireball = true;
-                            b.speed = state.ballSpeed * 3;
-                            state.paddle.fireball = false;
+                            b.speed = activeGameState.ballSpeed * 3;
+                            activeGameState.paddle.fireball = false;
                         }
 
                         b.vx = b.speed * Math.sin(angle);
                         b.vy = -b.speed * Math.cos(angle);
                         playSound();
                     } else if (b.y + b.vy > 750 - b.r) {
-                        if (state.shield.active) {
+                        if (activeGameState.shield.active) {
                             b.vy = -b.vy;
                             b.y = 750 - b.r - 15;
-                            state.shield.active = false;
+                            activeGameState.shield.active = false;
                             playSound();
                         } else {
                             b.el.remove();
-                            state.balls.splice(i, 1);
+                            activeGameState.balls.splice(i, 1);
                         }
                     }
                 }
@@ -804,11 +804,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 b.y += b.vy;
             }
 
-            if (state.balls.length === 0) {
-                state.lives--;
-                ui.lives.textContent = state.lives;
+            if (activeGameState.balls.length === 0) {
+                activeGameState.lives--;
+                ui.lives.textContent = activeGameState.lives;
 
-                if (state.lives <= 0) {
+                if (activeGameState.lives <= 0) {
                     localStorage.removeItem("BRICK_BREAKER_SAVE");
                     checkContinueBtn();
                     goHome();
@@ -821,14 +821,14 @@ document.addEventListener("DOMContentLoaded", () => {
             checkCollisions();
             updateItems();
 
-            if (state.level === 5) {
+            if (activeGameState.level === 5) {
                 const badge = document.getElementById("healerHudBadge");
                 const timer = document.getElementById("healerTimerDisplay");
                 if (badge) badge.classList.remove("d-none");
 
-                for (let c = 0; c < cfg.cols; c++) {
-                    for (let r = 0; r < cfg.rows; r++) {
-                        const core = state.bricks[c][r];
+                for (let c = 0; c < brickLayoutConfiguration.cols; c++) {
+                    for (let r = 0; r < brickLayoutConfiguration.rows; r++) {
+                        const core = activeGameState.bricks[c][r];
                         if (core && core.active && core.isHealer) {
                             core.healTimer++;
                             if (timer) timer.textContent = Math.max(0, Math.ceil((3600 - core.healTimer) / 60));
@@ -846,8 +846,8 @@ document.addEventListener("DOMContentLoaded", () => {
                                         const nc = c + dc;
                                         const nr = r + dr;
 
-                                        if (nc >= 0 && nc < cfg.cols && nr >= 0 && nr < cfg.rows) {
-                                            const target = state.bricks[nc][nr];
+                                        if (nc >= 0 && nc < brickLayoutConfiguration.cols && nr >= 0 && nr < brickLayoutConfiguration.rows) {
+                                            const target = activeGameState.bricks[nc][nr];
                                             if (target && target.active && !target.isHealer) {
                                                 if (target.hp < 3) {
                                                     target.hp++;
@@ -867,29 +867,29 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (badge) badge.classList.add("d-none");
             }
 
-            if (state.level === 6) {
+            if (activeGameState.level === 6) {
                 const badge = document.getElementById("bossHudBadge");
                 const bossHp = document.getElementById("bossHpDisplay");
                 if (badge) badge.classList.remove("d-none");
 
                 let bX = 300, bY = 100, bAlive = false;
 
-                for (let c = 0; c < cfg.cols; c++) {
-                    for (let r = 0; r < cfg.rows; r++) {
-                        const b = state.bricks[c][r];
+                for (let c = 0; c < brickLayoutConfiguration.cols; c++) {
+                    for (let r = 0; r < brickLayoutConfiguration.rows; r++) {
+                        const b = activeGameState.bricks[c][r];
                         if (b && b.active && b.isBoss) {
                             bAlive = true;
-                            bX = b.x + (b.w || cfg.bW) / 2;
-                            bY = b.y + (b.h || cfg.bH);
+                            bX = b.x + (b.w || brickLayoutConfiguration.bW) / 2;
+                            bY = b.y + (b.h || brickLayoutConfiguration.bH);
                             if (bossHp) bossHp.textContent = b.hp;
                         }
                     }
                 }
 
                 if (bAlive) {
-                    state.bossTimer++;
-                    if (state.bossTimer >= 300) {
-                        state.bossTimer = 0;
+                    activeGameState.bossTimer++;
+                    if (activeGameState.bossTimer >= 300) {
+                        activeGameState.bossTimer = 0;
 
                         const bullet = createEl("div", {
                             width: "8px",
@@ -900,66 +900,66 @@ document.addEventListener("DOMContentLoaded", () => {
                         });
                         ui.playArea.appendChild(bullet);
 
-                        state.bullets.push({ x: bX, y: bY, vy: 2.0, el: bullet });
+                        activeGameState.bullets.push({ x: bX, y: bY, vy: 2.0, el: bullet });
                     }
                 }
 
-                for (let i = state.bullets.length - 1; i >= 0; i--) {
-                    const p = state.bullets[i];
+                for (let i = activeGameState.bullets.length - 1; i >= 0; i--) {
+                    const p = activeGameState.bullets[i];
                     p.y += p.vy;
                     p.el.style.transform = `translate(${p.x - 4}px, ${p.y}px)`;
 
-                    const hitY = p.y + 16 >= state.paddle.y && p.y <= state.paddle.y + state.paddle.h;
-                    const hitX = p.x + 8 >= state.paddle.x && p.x <= state.paddle.x + state.paddle.w;
+                    const hitY = p.y + 16 >= activeGameState.paddle.y && p.y <= activeGameState.paddle.y + activeGameState.paddle.h;
+                    const hitX = p.x + 8 >= activeGameState.paddle.x && p.x <= activeGameState.paddle.x + activeGameState.paddle.w;
 
                     if (hitY && hitX) {
                         p.el.remove();
-                        state.bullets.splice(i, 1);
+                        activeGameState.bullets.splice(i, 1);
 
-                        if (!state.shield.active) {
-                            state.lives--;
-                            ui.lives.textContent = state.lives;
+                        if (!activeGameState.shield.active) {
+                            activeGameState.lives--;
+                            ui.lives.textContent = activeGameState.lives;
                             playSound();
 
-                            if (state.lives <= 0) {
+                            if (activeGameState.lives <= 0) {
                                 localStorage.removeItem("BRICK_BREAKER_SAVE");
                                 checkContinueBtn();
                                 goHome();
                                 return;
                             }
                         } else {
-                            state.shield.active = false;
+                            activeGameState.shield.active = false;
                         }
                     } else if (p.y > 750) {
                         p.el.remove();
-                        state.bullets.splice(i, 1);
+                        activeGameState.bullets.splice(i, 1);
                     }
                 }
             } else {
                 const badge = document.getElementById("bossHudBadge");
                 if (badge) badge.classList.add("d-none");
 
-                state.bullets.forEach(p => p.el.remove());
-                state.bullets = [];
+                activeGameState.bullets.forEach(p => p.el.remove());
+                activeGameState.bullets = [];
             }
         }
 
-        if (state.keys.right && state.paddle.x < 600 - state.paddle.w) {
-            state.paddle.x += state.paddle.speed;
-            if (!state.launched && state.balls.length > 0) {
-                state.balls[0].x = state.paddle.x + state.paddle.w / 2;
+        if (activeGameState.keys.right && activeGameState.paddle.x < 600 - activeGameState.paddle.w) {
+            activeGameState.paddle.x += activeGameState.paddle.speed;
+            if (!activeGameState.launched && activeGameState.balls.length > 0) {
+                activeGameState.balls[0].x = activeGameState.paddle.x + activeGameState.paddle.w / 2;
             }
-        } else if (state.keys.left && state.paddle.x > 0) {
-            state.paddle.x -= state.paddle.speed;
-            if (!state.launched && state.balls.length > 0) {
-                state.balls[0].x = state.paddle.x + state.paddle.w / 2;
+        } else if (activeGameState.keys.left && activeGameState.paddle.x > 0) {
+            activeGameState.paddle.x -= activeGameState.paddle.speed;
+            if (!activeGameState.launched && activeGameState.balls.length > 0) {
+                activeGameState.balls[0].x = activeGameState.paddle.x + activeGameState.paddle.w / 2;
             }
         }
 
         draw();
 
-        if (state.running) {
-            state.animId = requestAnimationFrame(update);
+        if (activeGameState.running) {
+            activeGameState.animId = requestAnimationFrame(update);
         }
     }
 
@@ -986,8 +986,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function goHome() {
-        state.running = false;
-        cancelAnimationFrame(state.animId);
+        activeGameState.running = false;
+        cancelAnimationFrame(activeGameState.animId);
 
         ui.screenWrapper.classList.remove("playing-size");
         ui.gameHud.classList.add("d-none");
@@ -1057,13 +1057,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function loadLevel(lvl, keepScore = false) {
-        state.level = lvl;
-        if (!keepScore) state.score = 0;
-        state.lives = 3;
-        ui.score.textContent = state.score;
-        ui.lives.textContent = state.lives;
+        activeGameState.level = lvl;
+        if (!keepScore) activeGameState.score = 0;
+        activeGameState.lives = 3;
+        ui.score.textContent = activeGameState.score;
+        ui.lives.textContent = activeGameState.lives;
 
-        if (ui.level) ui.level.textContent = `MÀN ${state.level}`;
+        if (ui.level) ui.level.textContent = `MÀN ${activeGameState.level}`;
 
         const tutorials = {
             1: {
@@ -1088,7 +1088,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 p1: "👉 <strong>Cơ chế:</strong> Các khối gạch xanh bị tàng hình. Bạn cần va chạm vào Nút Công Tắc màu cam để bật/tắt hiển thị gạch."+
                     "<br><br>" +
                     "<span class='text-danger'><strong>Lưu ý:</strong> Các khối gạch sẽ biến mất lần nữa nếu bạn tái kích hoạt nút",
-                p2: "💡 <strong>Mẹo nhỏ:</strong> Đừng lo lắng, các khối gạch sẽ hiện lại lần nữa nếu bạn kích hoạt nút mà không reset lại từ đầu. Hãy sử dụng các vật phẩm hợp lý để dành chiến thắng!+" +
+                p2: "💡 <strong>Mẹo nhỏ:</strong> Đừng lo lắng, các khối gạch sẽ hiện lại lần nữa nếu bạn kích hoạt nút mà không reset lại từ đầu. Hãy sử dụng các vật phẩm hợp lý để dành chiến thắng!" +
                     "<br><br>" +
                     "<span class='text-danger'><strong>Lưu ý:</strong> Bạn có thể sử dụng vật phẩm nhân 3 bóng hoặc bắn ra 3 bóng, nó có thể giúp bạn thắng nhanh hơn nhưng cũng có thể làm các khối ẩn bật tắt liên tục gây khá ức chế. Nó sẽ là 1 canh bạc nếu bạn không tính toán đầy đủ. Hãy né nếu bạn không muốn bị loạn còn không thì (bạn hiểu ý tôi mà 😏). </span>",
             },
@@ -1118,7 +1118,7 @@ document.addEventListener("DOMContentLoaded", () => {
         tutCurrentPage = 1;
         updateTutorialPages();
 
-        state.paddle.x = 240;
+        activeGameState.paddle.x = 240;
         initLevel();
         resetBall();
         draw();
@@ -1131,14 +1131,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function saveGame() {
-        if (!state.bricks || state.bricksLeft <= 0) return;
+        if (!activeGameState.bricks || activeGameState.bricksLeft <= 0) return;
 
         const matrix = [];
-        for (let c = 0; c < cfg.cols; c++) {
+        for (let c = 0; c < brickLayoutConfiguration.cols; c++) {
             matrix[c] = [];
-            for (let r = 0; r < cfg.rows; r++) {
+            for (let r = 0; r < brickLayoutConfiguration.rows; r++) {
                 let val = 0;
-                const b = state.bricks[c][r];
+                const b = activeGameState.bricks[c][r];
                 if (b && b.active) {
                     if (b.isT) {
                         val = b.isTOn ? -2 : -3;
@@ -1156,14 +1156,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const data = {
-            level: state.level,
-            score: state.score,
-            lives: state.lives,
-            paddleX: state.paddle.x,
+            level: activeGameState.level,
+            score: activeGameState.score,
+            lives: activeGameState.lives,
+            paddleX: activeGameState.paddle.x,
             paddleY: 705,
-            isLaunched: state.launched,
-            savedBalls: state.balls.map(b => ({
-                posX: b.x > 0 ? b.x : state.paddle.x + 60,
+            isLaunched: activeGameState.launched,
+            savedBalls: activeGameState.balls.map(b => ({
+                posX: b.x > 0 ? b.x : activeGameState.paddle.x + 60,
                 posY: b.y > 0 ? b.y : 690,
                 velX: b.vx,
                 velY: b.vy,
@@ -1242,7 +1242,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.startGame.addEventListener("click", () => {
         ui.tutorialOverlay.classList.add("d-none");
         ui.tutorialOverlay.classList.remove("d-flex");
-        state.running = true;
+        activeGameState.running = true;
         resetBall();
         update();
     });
@@ -1253,41 +1253,41 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!raw) return;
 
         const data = JSON.parse(raw);
-        state.level = data.level || 1;
-        if (ui.level) ui.level.textContent = `MÀN ${state.level}`;
+        activeGameState.level = data.level || 1;
+        if (ui.level) ui.level.textContent = `MÀN ${activeGameState.level}`;
 
         expandGameUI();
-        state.score = data.score;
-        state.lives = data.lives;
-        state.paddle.x = data.paddleX;
-        state.paddle.y = 705;
-        state.launched = data.isLaunched;
+        activeGameState.score = data.score;
+        activeGameState.lives = data.lives;
+        activeGameState.paddle.x = data.paddleX;
+        activeGameState.paddle.y = 705;
+        activeGameState.launched = data.isLaunched;
 
         clearArea();
         initPaddle();
         initShield();
-        state.balls = [];
-        state.items = [];
-        state.bullets = [];
-        state.bossTimer = 0;
-        state.shield.active = false;
-        state.paddle.fireball = false;
-        state.paddle.w = 120;
+        activeGameState.balls = [];
+        activeGameState.items = [];
+        activeGameState.bullets = [];
+        activeGameState.bossTimer = 0;
+        activeGameState.shield.active = false;
+        activeGameState.paddle.fireball = false;
+        activeGameState.paddle.w = 120;
 
         data.savedBalls.forEach(sb => {
-            const b = newBall(sb.posX > 0 ? sb.posX : state.paddle.x + 60, sb.posY > 0 ? sb.posY : 690);
+            const b = newBall(sb.posX > 0 ? sb.posX : activeGameState.paddle.x + 60, sb.posY > 0 ? sb.posY : 690);
             b.vx = sb.velX;
             b.vy = sb.velY;
             b.speed = sb.speed;
             b.fireball = sb.isRed;
             initBall(b);
-            state.balls.push(b);
+            activeGameState.balls.push(b);
         });
 
         let hasValid = false;
         if (data.brickMatrix) {
-            for (let c = 0; c < cfg.cols; c++) {
-                for (let r = 0; r < cfg.rows; r++) {
+            for (let c = 0; c < brickLayoutConfiguration.cols; c++) {
+                for (let r = 0; r < brickLayoutConfiguration.rows; r++) {
                     if (data.brickMatrix[c] && data.brickMatrix[c][r] !== 0) {
                         hasValid = true;
                         break;
@@ -1301,12 +1301,12 @@ document.addEventListener("DOMContentLoaded", () => {
             initLevel();
             resetBall();
         } else {
-            state.bricks = [];
-            state.bricksLeft = 0;
+            activeGameState.bricks = [];
+            activeGameState.bricksLeft = 0;
 
-            for (let c = 0; c < cfg.cols; c++) {
-                state.bricks[c] = [];
-                for (let r = 0; r < cfg.rows; r++) {
+            for (let c = 0; c < brickLayoutConfiguration.cols; c++) {
+                activeGameState.bricks[c] = [];
+                for (let r = 0; r < brickLayoutConfiguration.rows; r++) {
                     const val = data.brickMatrix[c][r];
                     let hp = val;
                     let isU = false;
@@ -1317,24 +1317,24 @@ document.addEventListener("DOMContentLoaded", () => {
                     let isHealer = false;
                     let isBoss = false;
                     let active = val !== 0;
-                    let col = cfg.colors[r % cfg.colors.length];
+                    let col = brickLayoutConfiguration.colors[r % brickLayoutConfiguration.colors.length];
 
-                    if (state.level === 1) {
+                    if (activeGameState.level === 1) {
                         col = "#00f2fe";
-                    } else if (state.level === 2 || state.level === 5) {
+                    } else if (activeGameState.level === 2 || activeGameState.level === 5) {
                         const l2Cols = { 5: "#ff4757", 4: "#ffa502", 3: "#eccc68", 2: "#2ed573", 1: "#1e90ff" };
                         col = l2Cols[hp] || "#1e90ff";
-                    } else if (state.level === 4) {
+                    } else if (activeGameState.level === 4) {
                         isHideable = true;
                         col = "#1dd1a1";
-                    } else if (state.level === 6) {
+                    } else if (activeGameState.level === 6) {
                         if (r === 3 && c === 6) {
                             isBoss = true;
                             col = "#1a1a2e";
                         }
                     }
 
-                    if (state.level === 5) {
+                    if (activeGameState.level === 5) {
                         const centers = [[3, 3], [3, 11], [8, 7]];
                         for (let i = 0; i < centers.length; i++) {
                             const cr = centers[i][0];
@@ -1363,34 +1363,34 @@ document.addEventListener("DOMContentLoaded", () => {
                             }
                         }
 
-                        state.bricks[c][r] = createBrick(c, r, hp, isU, isH, isHideable, isT, isTOn, isHealer, isBoss, col);
+                        activeGameState.bricks[c][r] = createBrick(c, r, hp, isU, isH, isHideable, isT, isTOn, isHealer, isBoss, col);
 
                         if (active && !isU && !isBoss) {
-                            state.bricksLeft++;
+                            activeGameState.bricksLeft++;
                         }
                     } else {
-                        state.bricks[c][r] = { active: false };
+                        activeGameState.bricks[c][r] = { active: false };
                     }
                 }
             }
         }
 
-        ui.score.textContent = state.score;
-        ui.lives.textContent = state.lives;
+        ui.score.textContent = activeGameState.score;
+        ui.lives.textContent = activeGameState.lives;
 
-        if (!state.launched) {
+        if (!activeGameState.launched) {
             ui.launchHintOverlay.classList.remove("d-none");
             ui.launchHintOverlay.classList.add("d-flex");
         }
 
         draw();
-        state.running = true;
+        activeGameState.running = true;
         update();
     });
 
     btn.menu.addEventListener("click", () => {
-        state.running = false;
-        cancelAnimationFrame(state.animId);
+        activeGameState.running = false;
+        cancelAnimationFrame(activeGameState.animId);
         ui.launchHintOverlay.classList.add("d-none");
         ui.launchHintOverlay.classList.remove("d-flex");
         ui.pauseOverlay.classList.remove("d-none");
@@ -1400,8 +1400,8 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.resume.addEventListener("click", () => {
         ui.pauseOverlay.classList.add("d-none");
         ui.pauseOverlay.classList.remove("d-flex");
-        state.running = true;
-        if (!state.launched) {
+        activeGameState.running = true;
+        if (!activeGameState.launched) {
             ui.launchHintOverlay.classList.remove("d-none");
             ui.launchHintOverlay.classList.add("d-flex");
         }
@@ -1434,13 +1434,13 @@ document.addEventListener("DOMContentLoaded", () => {
         ui.victoryOverlay.classList.add("d-none");
         ui.victoryOverlay.classList.remove("d-flex");
 
-        if (state.level >= 6) {
+        if (activeGameState.level >= 6) {
             alert("Chúc mừng bạn đã xuất sắc phá đảo toàn bộ 6 màn chơi!");
             goHome();
             return;
         }
 
-        const nextLevel = Math.min(6, state.level + 1);
+        const nextLevel = Math.min(6, activeGameState.level + 1);
         loadLevel(nextLevel, true);
     });
 
@@ -1470,14 +1470,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const bgmSlider = document.getElementById("bgmSlider");
     if (bgmSlider) {
         bgmSlider.addEventListener("input", (e) => {
-            state.bgmVol = e.target.value / 100;
+            activeGameState.bgmVol = e.target.value / 100;
         });
     }
 
     const sfxSlider = document.getElementById("sfxSlider");
     if (sfxSlider) {
         sfxSlider.addEventListener("input", (e) => {
-            state.sfxVol = e.target.value / 100;
+            activeGameState.sfxVol = e.target.value / 100;
         });
     }
 });
