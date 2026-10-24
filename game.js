@@ -1087,7 +1087,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 title: "MÀN 4: GẠCH BỊ ẨN",
                 p1: "👉 <strong>Cơ chế:</strong> Các khối gạch xanh bị tàng hình. Bạn cần va chạm vào Nút Công Tắc màu cam để bật/tắt hiển thị gạch."+
                     "<br><br>" +
-                    "<span class='text-danger'><strong>Lưu ý:</strong> Các khối gạch sẽ biến mất lần nữa nếu bạn tái kích hoạt nút",
+                    "<span class='text-danger'><strong>Lưu ý:</strong> Lần đầu tiên bạn cần để bóng chạm vào nút kích hoạt 2 lần để hiện khối( đây không phải lỗi, đây là tính năng).Các khối gạch sẽ biến mất lần nữa nếu bạn tái kích hoạt nút",
                 p2: "💡 <strong>Mẹo nhỏ:</strong> Đừng lo lắng, các khối gạch sẽ hiện lại lần nữa nếu bạn kích hoạt nút mà không reset lại từ đầu. Hãy sử dụng các vật phẩm hợp lý để dành chiến thắng!" +
                     "<br><br>" +
                     "<span class='text-danger'><strong>Lưu ý:</strong> Bạn có thể sử dụng vật phẩm nhân 3 bóng hoặc bắn ra 3 bóng, nó có thể giúp bạn thắng nhanh hơn nhưng cũng có thể làm các khối ẩn bật tắt liên tục gây khá ức chế. Nó sẽ là 1 canh bạc nếu bạn không tính toán đầy đủ. Hãy né nếu bạn không muốn bị loạn còn không thì (bạn hiểu ý tôi mà 😏). </span>",
